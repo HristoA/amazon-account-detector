@@ -1,0 +1,21 @@
+{
+  "appTitle": "Detector de conta Amazon",
+  "marketplace": "Marketplace",
+  "language": "Idioma",
+  "allMarketplaces": "Todos",
+  "status": "Estado",
+  "email": "E-mail",
+  "lastChecked": "Última verificação",
+  "loggedIn": "Com sessão iniciada",
+  "loggedOut": "Desconectado",
+  "unknown": "Desconhecido",
+  "neverChecked": "Nunca verificado",
+  "refresh": "Atualizar",
+  "refreshAll": "Atualizar todos",
+  "checking": "A verificar…",
+  "noEmail": "—",
+  "region": "Região",
+  "loading": "A carregar…",
+  "allStatuses": "Todos",
+  "noMatchingStatus": "Nenhum marketplace corresponde a este separador."
+}

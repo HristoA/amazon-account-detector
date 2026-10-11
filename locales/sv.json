@@ -1,0 +1,21 @@
+{
+  "appTitle": "Amazon-kontodetektor",
+  "marketplace": "Marknadsplats",
+  "language": "Språk",
+  "allMarketplaces": "Alla",
+  "status": "Status",
+  "email": "E-post",
+  "lastChecked": "Senast kontrollerad",
+  "loggedIn": "Inloggad",
+  "loggedOut": "Utloggad",
+  "unknown": "Okänd",
+  "neverChecked": "Aldrig kontrollerad",
+  "refresh": "Uppdatera",
+  "refreshAll": "Uppdatera alla",
+  "checking": "Kontrollerar…",
+  "noEmail": "—",
+  "region": "Region",
+  "loading": "Laddar…",
+  "allStatuses": "Alla",
+  "noMatchingStatus": "Inga marknadsplatser matchar den här fliken."
+}

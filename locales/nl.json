@@ -1,0 +1,21 @@
+{
+  "appTitle": "Amazon-accountdetector",
+  "marketplace": "Marketplace",
+  "language": "Taal",
+  "allMarketplaces": "Alles",
+  "status": "Status",
+  "email": "E-mail",
+  "lastChecked": "Laatst gecontroleerd",
+  "loggedIn": "Ingelogd",
+  "loggedOut": "Uitgelogd",
+  "unknown": "Onbekend",
+  "neverChecked": "Nog niet gecontroleerd",
+  "refresh": "Vernieuwen",
+  "refreshAll": "Alles vernieuwen",
+  "checking": "Bezig met controleren…",
+  "noEmail": "—",
+  "region": "Regio",
+  "loading": "Laden…",
+  "allStatuses": "Alles",
+  "noMatchingStatus": "Geen marketplaces komen overeen met dit tabblad."
+}

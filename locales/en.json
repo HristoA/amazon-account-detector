@@ -1,0 +1,21 @@
+{
+  "appTitle": "Amazon Account Detector",
+  "marketplace": "Marketplace",
+  "language": "Language",
+  "allMarketplaces": "All",
+  "status": "Status",
+  "email": "Email",
+  "lastChecked": "Last checked",
+  "loggedIn": "Logged in",
+  "loggedOut": "Logged out",
+  "unknown": "Unknown",
+  "neverChecked": "Never checked",
+  "refresh": "Refresh",
+  "refreshAll": "Refresh all",
+  "checking": "Checking…",
+  "noEmail": "—",
+  "region": "Region",
+  "loading": "Loading…",
+  "allStatuses": "All",
+  "noMatchingStatus": "No marketplaces match this tab."
+}

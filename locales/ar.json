@@ -1,0 +1,21 @@
+{
+  "appTitle": "كاشف حساب أمازون",
+  "marketplace": "السوق",
+  "language": "اللغة",
+  "allMarketplaces": "الكل",
+  "status": "الحالة",
+  "email": "البريد الإلكتروني",
+  "lastChecked": "آخر فحص",
+  "loggedIn": "مسجّل الدخول",
+  "loggedOut": "مسجّل الخروج",
+  "unknown": "غير معروف",
+  "neverChecked": "لم يُفحص من قبل",
+  "refresh": "تحديث",
+  "refreshAll": "تحديث الكل",
+  "checking": "جارٍ الفحص…",
+  "noEmail": "—",
+  "region": "المنطقة",
+  "loading": "جارٍ التحميل…",
+  "allStatuses": "الكل",
+  "noMatchingStatus": "لا توجد أسواق تطابق علامة التبويب هذه."
+}

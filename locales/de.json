@@ -1,0 +1,21 @@
+{
+  "appTitle": "Amazon-Konto-Erkennung",
+  "marketplace": "Marktplatz",
+  "language": "Sprache",
+  "allMarketplaces": "Alle",
+  "status": "Status",
+  "email": "E-Mail",
+  "lastChecked": "Zuletzt geprüft",
+  "loggedIn": "Angemeldet",
+  "loggedOut": "Abgemeldet",
+  "unknown": "Unbekannt",
+  "neverChecked": "Noch nicht geprüft",
+  "refresh": "Aktualisieren",
+  "refreshAll": "Alle aktualisieren",
+  "checking": "Wird geprüft…",
+  "noEmail": "—",
+  "region": "Region",
+  "loading": "Laden…",
+  "allStatuses": "Alle",
+  "noMatchingStatus": "Keine Marktplätze entsprechen diesem Tab."
+}

@@ -1,0 +1,21 @@
+{
+  "appTitle": "Wykrywacz konta Amazon",
+  "marketplace": "Marketplace",
+  "language": "Język",
+  "allMarketplaces": "Wszystkie",
+  "status": "Status",
+  "email": "E-mail",
+  "lastChecked": "Ostatnie sprawdzenie",
+  "loggedIn": "Zalogowano",
+  "loggedOut": "Wylogowano",
+  "unknown": "Nieznany",
+  "neverChecked": "Nigdy nie sprawdzano",
+  "refresh": "Odśwież",
+  "refreshAll": "Odśwież wszystkie",
+  "checking": "Sprawdzanie…",
+  "noEmail": "—",
+  "region": "Region",
+  "loading": "Ładowanie…",
+  "allStatuses": "Wszystkie",
+  "noMatchingStatus": "Żaden marketplace nie pasuje do tej karty."
+}

@@ -1,0 +1,21 @@
+{
+  "appTitle": "अमेज़न खाता डिटेक्टर",
+  "marketplace": "मार्केटप्लेस",
+  "language": "भाषा",
+  "allMarketplaces": "सभी",
+  "status": "स्थिति",
+  "email": "ईमेल",
+  "lastChecked": "अंतिम जाँच",
+  "loggedIn": "लॉग इन",
+  "loggedOut": "लॉग आउट",
+  "unknown": "अज्ञात",
+  "neverChecked": "कभी जाँच नहीं हुई",
+  "refresh": "रीफ़्रेश",
+  "refreshAll": "सभी रीफ़्रेश करें",
+  "checking": "जाँच हो रही है…",
+  "noEmail": "—",
+  "region": "क्षेत्र",
+  "loading": "लोड हो रहा है…",
+  "allStatuses": "सभी",
+  "noMatchingStatus": "इस टैब से कोई मार्केटप्लेस मेल नहीं खाता।"
+}

@@ -1,0 +1,21 @@
+{
+  "appTitle": "Rilevatore account Amazon",
+  "marketplace": "Marketplace",
+  "language": "Lingua",
+  "allMarketplaces": "Tutti",
+  "status": "Stato",
+  "email": "Email",
+  "lastChecked": "Ultimo controllo",
+  "loggedIn": "Accesso effettuato",
+  "loggedOut": "Disconnesso",
+  "unknown": "Sconosciuto",
+  "neverChecked": "Mai controllato",
+  "refresh": "Aggiorna",
+  "refreshAll": "Aggiorna tutti",
+  "checking": "Controllo…",
+  "noEmail": "—",
+  "region": "Regione",
+  "loading": "Caricamento…",
+  "allStatuses": "Tutti",
+  "noMatchingStatus": "Nessun marketplace corrisponde a questa scheda."
+}

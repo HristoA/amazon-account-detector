@@ -1,0 +1,8 @@
+{
+  "extName": {
+    "message": "Amazon Account Detector"
+  },
+  "extDescription": {
+    "message": "Detect which Amazon account is logged in on a chosen marketplace"
+  }
+}

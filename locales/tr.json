@@ -1,0 +1,21 @@
+{
+  "appTitle": "Amazon Hesap Dedektörü",
+  "marketplace": "Pazar yeri",
+  "language": "Dil",
+  "allMarketplaces": "Tümü",
+  "status": "Durum",
+  "email": "E-posta",
+  "lastChecked": "Son kontrol",
+  "loggedIn": "Oturum açık",
+  "loggedOut": "Çıkışlı",
+  "unknown": "Bilinmiyor",
+  "neverChecked": "Hiç kontrol edilmedi",
+  "refresh": "Yenile",
+  "refreshAll": "Tümünü yenile",
+  "checking": "Kontrol ediliyor…",
+  "noEmail": "—",
+  "region": "Bölge",
+  "loading": "Yükleniyor…",
+  "allStatuses": "Tümü",
+  "noMatchingStatus": "Bu sekmeyle eşleşen pazar yeri yok."
+}
