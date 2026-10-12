@@ -1,7 +1,8 @@
 import { browser } from 'wxt/browser';
 import type { AuthCacheEntry } from './auth-types';
-import { buildSignInUrl, type Marketplace } from './marketplaces';
+import { buildSignInUrl, type Marketplace } from '../marketplace/marketplaces';
 import { parseAuthHtml } from './parse-auth';
+import { settleAuthHtml } from './settle-auth-html.ts';
 import { Semaphore } from './semaphore.ts';
 
 const TAB_LOAD_TIMEOUT_MS = 20_000;
@@ -48,6 +49,8 @@ export async function detectAuth(
         source: 'fetch',
       };
     }
+    // Indeterminate includes AWS WAF challenge HTML — use the tab path so
+    // challenge.js can run and reload to the real sign-in / switcher page.
   } catch {
     // Fall through to inactive-tab approach.
   }
@@ -87,17 +90,23 @@ async function detectAuthViaTab(
       }
       options.onTabCreated?.(tabId);
 
-      await waitForTabComplete(tabId);
+      const deadlineMs = Date.now() + TAB_LOAD_TIMEOUT_MS;
+      await waitForTabComplete(tabId, remainingMs(deadlineMs));
       if (!isCurrent()) {
         return staleEntry();
       }
 
-      const results = await browser.scripting.executeScript({
-        target: { tabId },
-        func: () => document.documentElement.outerHTML,
+      const html = await settleAuthHtml({
+        readHtml: () => readTabHtml(tabId!),
+        waitForNextLoad: () =>
+          waitForNextTabComplete(tabId!, remainingMs(deadlineMs)),
+        isCurrent,
+        deadlineMs,
       });
-      const html = results[0]?.result;
-      if (typeof html !== 'string') {
+      if (!isCurrent()) {
+        return staleEntry();
+      }
+      if (typeof html !== 'string' || html.length === 0) {
         return {
           status: 'unknown',
           checkedAt: Date.now(),
@@ -126,6 +135,12 @@ async function detectAuthViaTab(
         checkedAt: Date.now(),
         source: 'tab',
       };
+    } catch {
+      return {
+        status: 'unknown',
+        checkedAt: Date.now(),
+        source: 'tab',
+      };
     } finally {
       if (tabId != null) {
         try {
@@ -138,6 +153,19 @@ async function detectAuthViaTab(
   });
 }
 
+async function readTabHtml(tabId: number): Promise<string> {
+  const results = await browser.scripting.executeScript({
+    target: { tabId },
+    func: () => document.documentElement.outerHTML,
+  });
+  const html = results[0]?.result;
+  return typeof html === 'string' ? html : '';
+}
+
+function remainingMs(deadlineMs: number): number {
+  return Math.max(0, deadlineMs - Date.now());
+}
+
 function staleEntry(): AuthCacheEntry {
   return {
     status: 'unknown',
@@ -145,12 +173,17 @@ function staleEntry(): AuthCacheEntry {
   };
 }
 
-function waitForTabComplete(tabId: number): Promise<void> {
+function waitForTabComplete(tabId: number, timeoutMs: number): Promise<void> {
   return new Promise((resolve, reject) => {
+    if (timeoutMs <= 0) {
+      reject(new Error('Tab load timed out'));
+      return;
+    }
+
     const timer = setTimeout(() => {
       cleanup();
       reject(new Error('Tab load timed out'));
-    }, TAB_LOAD_TIMEOUT_MS);
+    }, timeoutMs);
 
     const onUpdated = (
       updatedTabId: number,
@@ -181,5 +214,40 @@ function waitForTabComplete(tabId: number): Promise<void> {
         cleanup();
         reject(error);
       });
+  });
+}
+
+/** Wait for a future `complete` only — do not resolve for the current load. */
+function waitForNextTabComplete(
+  tabId: number,
+  timeoutMs: number,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (timeoutMs <= 0) {
+      reject(new Error('Tab load timed out'));
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error('Tab load timed out'));
+    }, timeoutMs);
+
+    const onUpdated = (
+      updatedTabId: number,
+      changeInfo: { status?: string },
+    ) => {
+      if (updatedTabId === tabId && changeInfo.status === 'complete') {
+        cleanup();
+        resolve();
+      }
+    };
+
+    const cleanup = () => {
+      clearTimeout(timer);
+      browser.tabs.onUpdated.removeListener(onUpdated);
+    };
+
+    browser.tabs.onUpdated.addListener(onUpdated);
   });
 }

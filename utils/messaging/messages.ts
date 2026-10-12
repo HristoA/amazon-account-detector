@@ -1,5 +1,5 @@
-import type { AuthByMarketplace } from './auth-types';
-import type { MarketplaceSelection } from './marketplaces';
+import type { AuthByMarketplace } from '../auth/auth-types';
+import type { MarketplaceSelection } from '../marketplace/marketplaces';
 
 export type ExtensionMessage =
   | { type: 'GET_POPUP_STATE' }

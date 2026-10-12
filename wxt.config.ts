@@ -1,5 +1,5 @@
 import { defineConfig } from 'wxt';
-import { marketplaceHostPermissions } from './utils/marketplaces';
+import { marketplaceHostPermissions } from './utils/marketplace/marketplaces';
 
 // See https://wxt.dev/api/config.html
 export default defineConfig({

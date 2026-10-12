@@ -1,4 +1,4 @@
-import { countryCodeToFlag } from './flags';
+import { countryCodeToFlag } from '../marketplace/flags';
 
 export interface LocaleDefinition {
   code: string;

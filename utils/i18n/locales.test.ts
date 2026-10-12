@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { LOCALES, resolveLocale } from './locales';
-import { countryCodeToFlag } from './flags';
+import { countryCodeToFlag } from '../marketplace/flags';
 
 describe('resolveLocale', () => {
   it('prefers stored locale when supported', () => {

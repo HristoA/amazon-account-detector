@@ -39,7 +39,7 @@ On popup open: load prefs + cache → render → trigger background refresh via 
 
 ## Marketplaces, flags, All
 
-[utils/marketplaces.ts](../utils/marketplaces.ts): full retail list (Americas, EMEA/India, Asia-Pacific; exclude non-retail / retired storefronts such as `amazon.cn`). Each entry includes `id`, `domain`, `suffix`, `assocHandle`, `countryCode` (ISO alpha-2).
+[utils/marketplace/marketplaces.ts](../utils/marketplace/marketplaces.ts): full retail list (Americas, EMEA/India, Asia-Pacific; exclude non-retail / retired storefronts such as `amazon.cn`). Each entry includes `id`, `domain`, `suffix`, `assocHandle`, `countryCode` (ISO alpha-2).
 
 - Dropdown: flag emoji from `countryCode` in front of each item (e.g. US flag + United States)
 - First option: **All** — table of every marketplace (flag/region, name, status, email, last checked)
@@ -59,7 +59,7 @@ This prevents: user opens All → first 5 start → user switches to another mar
 ## Detection
 
 1. Build sign-in URL from [REQUIREMENTS](REQUIREMENTS.md) pattern + per-marketplace `openid.assoc_handle`
-2. Fetch + [utils/parse-auth.ts](../utils/parse-auth.ts) → logged_in + email | logged_out | indeterminate
+2. Fetch + [utils/auth/parse-auth.ts](../utils/auth/parse-auth.ts) → logged_in + email | logged_out | indeterminate
 3. Indeterminate → inactive tab scrape → close tab
 4. Write cache only if generation still current; notify popup
 
@@ -91,7 +91,7 @@ Supported locales (ISO 639-1) and RTL, ordered by estimated total speakers (L1+L
 | nl        | No  | NL                  |
 | sv        | No  | SE                  |
 
-- Catalogs under `locales/*.json` for every code above; runtime [utils/i18n.ts](../utils/i18n.ts) (needed for runtime language switch; `chrome.i18n` alone cannot switch live)
+- Catalogs under `locales/*.json` for every code above; runtime [utils/i18n/i18n.ts](../utils/i18n/i18n.ts) (needed for runtime language switch; `chrome.i18n` alone cannot switch live)
 - Each locale entry includes `rtl: boolean` and `flagCountryCode` for the language dropdown
 - Resolve: stored `locale` if supported → else `browser.i18n.getUILanguage()` mapped to base tag → else `en`
 - **RTL**: when active locale has `rtl: true` (Arabic), set `document.documentElement.dir = "rtl"` (and `lang`); for LTR locales set `dir = "ltr"`. Layout/CSS must be logical (`margin-inline`, flex order) so the popup mirrors correctly
@@ -99,7 +99,7 @@ Supported locales (ISO 639-1) and RTL, ordered by estimated total speakers (L1+L
 
 ## Messaging and permissions
 
-Typed messages in [utils/messages.ts](../utils/messages.ts): `GET_POPUP_STATE`, `SET_MARKETPLACE`, `SET_LOCALE`, `CHECK_AUTH`, push `AUTH_UPDATED` / in-flight status including `allRefreshInFlight`.
+Typed messages in [utils/messaging/messages.ts](../utils/messaging/messages.ts): `GET_POPUP_STATE`, `SET_MARKETPLACE`, `SET_LOCALE`, `CHECK_AUTH`, push `AUTH_UPDATED` / in-flight status including `allRefreshInFlight`.
 
 [wxt.config.ts](../wxt.config.ts): `storage`, `tabs`, `scripting` + host permissions only for supported Amazon retail origins.
 

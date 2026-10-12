@@ -6,7 +6,10 @@ import {
   setAuthEntry,
   setSelectedMarketplace,
 } from './auth-cache';
-import { ALL_MARKETPLACES_ID, DEFAULT_MARKETPLACE_ID } from './marketplaces';
+import {
+  ALL_MARKETPLACES_ID,
+  DEFAULT_MARKETPLACE_ID,
+} from '../marketplace/marketplaces';
 
 describe('auth-cache', () => {
   beforeEach(() => {

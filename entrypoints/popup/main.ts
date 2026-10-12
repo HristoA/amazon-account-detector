@@ -1,7 +1,13 @@
 import './style.css';
-import type { AuthCacheEntry } from '@/utils/auth-types';
-import { formatCheckedAt, setActiveLocale, t } from '@/utils/i18n';
-import { applyDocumentLocale, LOCALES, localeFlag } from '@/utils/locales';
+import type { AuthCacheEntry } from '@/utils/auth/auth-types';
+import { formatCheckedAt, setActiveLocale, t } from '@/utils/i18n/i18n';
+import {
+  applyDocumentLocale,
+  getLocale,
+  LOCALES,
+  localeFlag,
+} from '@/utils/i18n/locales';
+import { formatFlagLabel } from '@/utils/marketplace/flags';
 import {
   ALL_MARKETPLACES_ID,
   buildMarketplaceActionUrl,
@@ -10,22 +16,22 @@ import {
   marketplaceFlag,
   type Marketplace,
   type MarketplaceSelection,
-} from '@/utils/marketplaces';
+} from '@/utils/marketplace/marketplaces';
 import {
   isExtensionMessage,
   type ExtensionMessage,
   type PopupState,
-} from '@/utils/messages';
+} from '@/utils/messaging/messages';
 import {
   createRefreshSpinnerElement,
   syncRefreshButtonSpinner,
-} from '@/utils/refresh-button-spinner';
+} from '@/utils/popup/refresh-button-spinner';
 import {
   isStatusFilter,
   matchesStatusFilter,
   STATUS_FILTERS,
   type StatusFilter,
-} from '@/utils/status-filter';
+} from '@/utils/popup/status-filter';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 
@@ -67,6 +73,10 @@ async function init(): Promise<void> {
 function applyLocaleFromState(s: PopupState): void {
   setActiveLocale(s.locale);
   applyDocumentLocale(s.locale);
+}
+
+function isRtlUi(): boolean {
+  return getLocale(state?.locale ?? '')?.rtl === true;
 }
 
 function render(): void {
@@ -125,18 +135,20 @@ function render(): void {
   const languageSelect = app.querySelector<HTMLSelectElement>('#language')!;
   const content = app.querySelector<HTMLDivElement>('#content')!;
 
+  const rtl = isRtlUi();
+
   marketplaceSelect.innerHTML = [
-    `<option value="${ALL_MARKETPLACES_ID}">🏳️ ${t('allMarketplaces')}</option>`,
+    `<option value="${ALL_MARKETPLACES_ID}">${formatFlagLabel('🏳️', t('allMarketplaces'), rtl)}</option>`,
     ...MARKETPLACES.map(
       (m) =>
-        `<option value="${m.id}">${marketplaceFlag(m)} ${m.region} (${m.domain})</option>`,
+        `<option value="${m.id}">${formatFlagLabel(marketplaceFlag(m), `${m.region} (${m.domain})`, rtl)}</option>`,
     ),
   ].join('');
   marketplaceSelect.value = state.selectedMarketplaceId;
 
   languageSelect.innerHTML = LOCALES.map(
     (locale) =>
-      `<option value="${locale.code}">${localeFlag(locale)} ${locale.label}</option>`,
+      `<option value="${locale.code}">${formatFlagLabel(localeFlag(locale), locale.label, rtl)}</option>`,
   ).join('');
   languageSelect.value = state.locale;
 
@@ -192,7 +204,7 @@ function renderSingleView(
       <article class="market-card ${row.statusClass}">
         <div class="market-card-head">
           <div class="market-card-title">
-            <span class="market-card-name">${marketplaceFlag(marketplace)} ${marketplace.region}</span>
+            <span class="market-card-name">${formatFlagLabel(marketplaceFlag(marketplace), marketplace.region, isRtlUi())}</span>
             ${renderDomainLink(marketplace, row.linkStatus)}
           </div>
           <div class="status-label ${row.statusClass}">${row.status}</div>
@@ -233,7 +245,7 @@ function renderAllView(refreshLocked: boolean): string {
       <article class="market-card ${row.statusClass}" data-marketplace-id="${m.id}"${hidden}>
         <div class="market-card-head">
           <div class="market-card-title">
-            <span class="market-card-name">${marketplaceFlag(m)} ${m.region}</span>
+            <span class="market-card-name">${formatFlagLabel(marketplaceFlag(m), m.region, isRtlUi())}</span>
             ${renderDomainLink(m, row.linkStatus)}
           </div>
           <div class="status-label ${row.statusClass}">${row.status}</div>

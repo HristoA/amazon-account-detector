@@ -5,22 +5,22 @@ import {
   setAuthEntry,
   setSelectedMarketplace,
   setStoredLocale,
-} from '@/utils/auth-cache';
-import type { AuthCacheEntry } from '@/utils/auth-types';
-import { CheckCoordinator, mapPool } from '@/utils/check-coordinator';
-import { detectAuth } from '@/utils/detect-auth';
-import { resolveLocale } from '@/utils/locales';
+} from '@/utils/auth/auth-cache';
+import type { AuthCacheEntry } from '@/utils/auth/auth-types';
+import { CheckCoordinator, mapPool } from '@/utils/auth/check-coordinator';
+import { detectAuth } from '@/utils/auth/detect-auth';
+import { resolveLocale } from '@/utils/i18n/locales';
 import {
   ALL_MARKETPLACES_ID,
   getMarketplace,
   MARKETPLACES,
   type MarketplaceSelection,
-} from '@/utils/marketplaces';
+} from '@/utils/marketplace/marketplaces';
 import {
   isExtensionMessage,
   type ExtensionMessage,
   type PopupState,
-} from '@/utils/messages';
+} from '@/utils/messaging/messages';
 
 const ALL_CONCURRENCY = 5;
 

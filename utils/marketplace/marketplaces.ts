@@ -1,4 +1,4 @@
-import type { AuthStatus } from './auth-types';
+import type { AuthStatus } from '../auth/auth-types';
 import { countryCodeToFlag } from './flags';
 
 export const ALL_MARKETPLACES_ID = 'all' as const;

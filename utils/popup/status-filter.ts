@@ -1,4 +1,4 @@
-import type { AuthStatus } from './auth-types';
+import type { AuthStatus } from '../auth/auth-types';
 
 /** Filter for the All-marketplaces list. Uses cached auth status (not in-flight). */
 export type StatusFilter = 'all' | AuthStatus;

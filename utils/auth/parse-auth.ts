@@ -3,6 +3,19 @@ import type { ParseResult } from './auth-types';
 const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
 
 /**
+ * AWS WAF bot interstitial Amazon serves before some marketplace sign-in pages.
+ * Fetch gets this HTML; a real tab runs challenge.js then reloads to the real page.
+ */
+export function isAwsWafChallengeHtml(html: string): boolean {
+  return (
+    /AwsWafIntegration/i.test(html) ||
+    /awswaf\.com/i.test(html) ||
+    /\bgokuProps\b/.test(html) ||
+    /id=["']challenge-container["']/i.test(html)
+  );
+}
+
+/**
  * Heuristic parse of Amazon account-switcher / sign-in HTML.
  * Logged-in pages expose the account email; logged-out pages show the sign-in form.
  */

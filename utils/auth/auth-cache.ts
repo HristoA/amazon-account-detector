@@ -5,7 +5,7 @@ import {
   DEFAULT_MARKETPLACE_ID,
   isMarketplaceSelection,
   type MarketplaceSelection,
-} from './marketplaces';
+} from '../marketplace/marketplaces';
 
 export const selectedMarketplaceItem = storage.defineItem<MarketplaceSelection>(
   'local:selectedMarketplaceId',

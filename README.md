@@ -32,12 +32,12 @@ During **Refresh all**, up to 5 marketplaces **fetch** at once, but at most **on
 
 ### Statuses shown in the popup
 
-| Status     | Meaning                                                                                          |
-| ---------- | ------------------------------------------------------------------------------------------------ |
-| Logged in  | Check found an account email / switcher UI                                                       |
-| Logged out | Check found a clear sign-in form                                                                 |
-| Checking…  | A check is currently in flight for that marketplace                                              |
-| Unknown    | No result yet, or the check could not decide (CAPTCHA, odd page, timeout, cancelled check, etc.) |
+| Status     | Meaning                                                                                                             |
+| ---------- | ------------------------------------------------------------------------------------------------------------------- |
+| Logged in  | Check found an account email / switcher UI                                                                          |
+| Logged out | Check found a clear sign-in form                                                                                    |
+| Checking…  | A check is currently in flight for that marketplace                                                                 |
+| Unknown    | No result yet, or the check could not decide (AWS WAF challenge, CAPTCHA, odd page, timeout, cancelled check, etc.) |
 
 Auth state is cached per marketplace in `browser.storage.local` (survives browser restart). Opening the popup shows cached data immediately, then refreshes in the background.
 
