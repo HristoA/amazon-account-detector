@@ -13,9 +13,21 @@
   "refresh": "Aktualisieren",
   "refreshAll": "Alle aktualisieren",
   "checking": "Wird geprüft…",
-  "noEmail": "—",
+  "noEmail": "-",
   "region": "Region",
   "loading": "Laden…",
   "allStatuses": "Alle",
-  "noMatchingStatus": "Keine Marktplätze entsprechen diesem Tab."
+  "noMatchingStatus": "Keine Marktplätze entsprechen diesem Tab.",
+  "checkedJustNow": "Gerade eben geprüft",
+  "checkedSecondsAgo": "Vor {seconds}s geprüft",
+  "settings": "Einstellungen",
+  "languageOfPopup": "Sprache dieses Popups.",
+  "notAffiliated": "Nicht mit Amazon verbunden",
+  "version": "Version",
+  "back": "Zurück",
+  "geoAmericas": "Amerika",
+  "geoEurope": "Europa",
+  "geoMiddleEast": "Naher Osten",
+  "geoAfrica": "Afrika",
+  "geoAsiaPacific": "Asien-Pazifik"
 }

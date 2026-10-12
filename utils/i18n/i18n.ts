@@ -43,9 +43,18 @@ export function getActiveLocale(): string {
   return activeLocale;
 }
 
-export function t(key: MessageKey): string {
+export function t(
+  key: MessageKey,
+  vars?: Record<string, string | number>,
+): string {
   const catalog = catalogs[activeLocale] ?? catalogs[DEFAULT_LOCALE]!;
-  return catalog[key] ?? catalogs[DEFAULT_LOCALE]![key] ?? key;
+  let message = catalog[key] ?? catalogs[DEFAULT_LOCALE]![key] ?? key;
+  if (vars) {
+    for (const [name, value] of Object.entries(vars)) {
+      message = message.replaceAll(`{${name}}`, String(value));
+    }
+  }
+  return message;
 }
 
 export function formatCheckedAt(
@@ -55,8 +64,13 @@ export function formatCheckedAt(
   if (!checkedAt) {
     return t('neverChecked');
   }
-  return new Intl.DateTimeFormat(locale, {
-    dateStyle: 'medium',
-    timeStyle: 'medium',
-  }).format(new Date(checkedAt));
+  // Local datetime string with seconds (e.g. "10/27/2023, 2:30:45 PM").
+  return new Date(checkedAt).toLocaleString(locale, {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+  });
 }

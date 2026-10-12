@@ -13,9 +13,21 @@
   "refresh": "Uppdatera",
   "refreshAll": "Uppdatera alla",
   "checking": "Kontrollerar…",
-  "noEmail": "—",
+  "noEmail": "-",
   "region": "Region",
   "loading": "Laddar…",
   "allStatuses": "Alla",
-  "noMatchingStatus": "Inga marknadsplatser matchar den här fliken."
+  "noMatchingStatus": "Inga marknadsplatser matchar den här fliken.",
+  "checkedJustNow": "Kontrollerad nyss",
+  "checkedSecondsAgo": "Kontrollerad för {seconds}s sedan",
+  "settings": "Inställningar",
+  "languageOfPopup": "Språk för den här popupen.",
+  "notAffiliated": "Ej anknutet till Amazon",
+  "version": "Version",
+  "back": "Tillbaka",
+  "geoAmericas": "Amerika",
+  "geoEurope": "Europa",
+  "geoMiddleEast": "Mellanöstern",
+  "geoAfrica": "Afrika",
+  "geoAsiaPacific": "Asien-Stillahavet"
 }

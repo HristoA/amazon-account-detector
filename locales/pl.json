@@ -13,9 +13,21 @@
   "refresh": "Odśwież",
   "refreshAll": "Odśwież wszystkie",
   "checking": "Sprawdzanie…",
-  "noEmail": "—",
+  "noEmail": "-",
   "region": "Region",
   "loading": "Ładowanie…",
   "allStatuses": "Wszystkie",
-  "noMatchingStatus": "Żaden marketplace nie pasuje do tej karty."
+  "noMatchingStatus": "Żaden marketplace nie pasuje do tej karty.",
+  "checkedJustNow": "Sprawdzono przed chwilą",
+  "checkedSecondsAgo": "Sprawdzono {seconds}s temu",
+  "settings": "Ustawienia",
+  "languageOfPopup": "Język tego wyskakującego okna.",
+  "notAffiliated": "Niezwiązane z Amazon",
+  "version": "Wersja",
+  "back": "Wstecz",
+  "geoAmericas": "Ameryki",
+  "geoEurope": "Europa",
+  "geoMiddleEast": "Bliski Wschód",
+  "geoAfrica": "Afryka",
+  "geoAsiaPacific": "Azja-Pacyfik"
 }

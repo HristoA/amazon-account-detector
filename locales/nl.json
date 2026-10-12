@@ -13,9 +13,21 @@
   "refresh": "Vernieuwen",
   "refreshAll": "Alles vernieuwen",
   "checking": "Bezig met controleren…",
-  "noEmail": "—",
+  "noEmail": "-",
   "region": "Regio",
   "loading": "Laden…",
   "allStatuses": "Alles",
-  "noMatchingStatus": "Geen marketplaces komen overeen met dit tabblad."
+  "noMatchingStatus": "Geen marketplaces komen overeen met dit tabblad.",
+  "checkedJustNow": "Zojuist gecontroleerd",
+  "checkedSecondsAgo": "{seconds}s geleden gecontroleerd",
+  "settings": "Instellingen",
+  "languageOfPopup": "Taal van deze popup.",
+  "notAffiliated": "Niet gelieerd aan Amazon",
+  "version": "Versie",
+  "back": "Terug",
+  "geoAmericas": "Amerika",
+  "geoEurope": "Europa",
+  "geoMiddleEast": "Midden-Oosten",
+  "geoAfrica": "Afrika",
+  "geoAsiaPacific": "Azië-Pacific"
 }

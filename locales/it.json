@@ -13,9 +13,21 @@
   "refresh": "Aggiorna",
   "refreshAll": "Aggiorna tutti",
   "checking": "Controllo…",
-  "noEmail": "—",
+  "noEmail": "-",
   "region": "Regione",
   "loading": "Caricamento…",
   "allStatuses": "Tutti",
-  "noMatchingStatus": "Nessun marketplace corrisponde a questa scheda."
+  "noMatchingStatus": "Nessun marketplace corrisponde a questa scheda.",
+  "checkedJustNow": "Controllato proprio ora",
+  "checkedSecondsAgo": "Controllato {seconds}s fa",
+  "settings": "Impostazioni",
+  "languageOfPopup": "Lingua di questo popup.",
+  "notAffiliated": "Non affiliato ad Amazon",
+  "version": "Versione",
+  "back": "Indietro",
+  "geoAmericas": "Americhe",
+  "geoEurope": "Europa",
+  "geoMiddleEast": "Medio Oriente",
+  "geoAfrica": "Africa",
+  "geoAsiaPacific": "Asia-Pacifico"
 }

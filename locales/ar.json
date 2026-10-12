@@ -13,9 +13,21 @@
   "refresh": "تحديث",
   "refreshAll": "تحديث الكل",
   "checking": "جارٍ الفحص…",
-  "noEmail": "—",
+  "noEmail": "-",
   "region": "المنطقة",
   "loading": "جارٍ التحميل…",
   "allStatuses": "الكل",
-  "noMatchingStatus": "لا توجد أسواق تطابق علامة التبويب هذه."
+  "noMatchingStatus": "لا توجد أسواق تطابق علامة التبويب هذه.",
+  "checkedJustNow": "تم الفحص للتو",
+  "checkedSecondsAgo": "تم الفحص قبل {seconds}ث",
+  "settings": "الإعدادات",
+  "languageOfPopup": "لغة هذه النافذة المنبثقة.",
+  "notAffiliated": "غير تابع لأمازون",
+  "version": "الإصدار",
+  "back": "رجوع",
+  "geoAmericas": "الأمريكتان",
+  "geoEurope": "أوروبا",
+  "geoMiddleEast": "الشرق الأوسط",
+  "geoAfrica": "أفريقيا",
+  "geoAsiaPacific": "آسيا والمحيط الهادئ"
 }
