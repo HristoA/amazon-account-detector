@@ -1,5 +1,6 @@
+import { AllRefreshBatch } from '@/utils/auth/all-refresh';
 import {
-  getAuthCache,
+  ensureAuthCacheSeeded,
   getSelectedMarketplace,
   getStoredLocale,
   setAuthEntry,
@@ -7,8 +8,12 @@ import {
   setStoredLocale,
 } from '@/utils/auth/auth-cache';
 import type { AuthCacheEntry } from '@/utils/auth/auth-types';
-import { CheckCoordinator, mapPool } from '@/utils/auth/check-coordinator';
+import {
+  CheckCoordinator,
+  mapPoolBestEffort,
+} from '@/utils/auth/check-coordinator';
 import { detectAuth } from '@/utils/auth/detect-auth';
+import { closeTrackedFallbackTabs } from '@/utils/auth/fallback-tabs';
 import { resolveLocale } from '@/utils/i18n/locales';
 import {
   ALL_MARKETPLACES_ID,
@@ -25,9 +30,14 @@ import {
 const ALL_CONCURRENCY = 5;
 
 const coordinator = new CheckCoordinator<AuthCacheEntry>();
-let allRefreshInFlight = false;
+const allRefreshBatch = new AllRefreshBatch();
 
 export default defineBackground(() => {
+  // SW may have been killed mid-check; close any orphaned inactive tabs.
+  void closeTrackedFallbackTabs();
+  // First run / new storefronts: signed-out seeds (checkedAt 0) before refresh.
+  void ensureAuthCacheSeeded();
+
   browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (!isExtensionMessage(message)) {
       return;
@@ -69,7 +79,7 @@ async function runCheck(
     return buildPopupState();
   }
 
-  if (allRefreshInFlight) {
+  if (allRefreshBatch.inFlight) {
     // Global lock: ignore individual checks while All batch is running.
     return buildPopupState();
   }
@@ -79,19 +89,38 @@ async function runCheck(
 }
 
 async function runAllChecks(): Promise<void> {
-  if (allRefreshInFlight) {
-    return;
-  }
-  allRefreshInFlight = true;
-  await broadcastState();
-
   try {
-    await mapPool([...MARKETPLACES], ALL_CONCURRENCY, async (marketplace) => {
-      await checkMarketplace(marketplace.id);
+    await allRefreshBatch.run(async () => {
       await broadcastState();
+      await mapPoolBestEffort(
+        [...MARKETPLACES],
+        ALL_CONCURRENCY,
+        async (marketplace) => {
+          await checkMarketplace(marketplace.id);
+          await broadcastState();
+        },
+        async (error, marketplace) => {
+          console.error(
+            `All-refresh worker failed for ${marketplace.id}`,
+            error,
+          );
+          try {
+            await setAuthEntry(marketplace.id, {
+              status: 'unknown',
+              checkedAt: Date.now(),
+            });
+          } catch (writeError) {
+            console.error(
+              `Failed to persist unknown for ${marketplace.id}`,
+              writeError,
+            );
+          }
+          await broadcastState();
+        },
+      );
     });
   } finally {
-    allRefreshInFlight = false;
+    // Batch lock clears before joiners resume — announce unlocked state.
     await broadcastState();
   }
 }
@@ -102,16 +131,8 @@ async function checkMarketplace(marketplaceId: string): Promise<void> {
     return;
   }
 
-  await coordinator.run(marketplaceId, async ({ isCurrent, setTabId }) => {
-    const entry = await detectAuth(marketplace, {
-      isCurrent,
-      onTabCreated: setTabId,
-    });
-
-    if (!isCurrent() || entry.checkedAt === 0) {
-      return entry;
-    }
-
+  await coordinator.run(marketplaceId, async () => {
+    const entry = await detectAuth(marketplace);
     await setAuthEntry(marketplaceId, entry);
     return entry;
   });
@@ -122,7 +143,7 @@ async function buildPopupState(): Promise<PopupState> {
     await Promise.all([
       getSelectedMarketplace(),
       getStoredLocale(),
-      getAuthCache(),
+      ensureAuthCacheSeeded(),
     ]);
 
   const browserLanguage = browser.i18n?.getUILanguage?.() ?? 'en';
@@ -133,7 +154,7 @@ async function buildPopupState(): Promise<PopupState> {
     locale,
     authByMarketplace,
     inFlightMarketplaceIds: coordinator.inFlightKeys(),
-    allRefreshInFlight,
+    allRefreshInFlight: allRefreshBatch.inFlight,
   };
 }
 

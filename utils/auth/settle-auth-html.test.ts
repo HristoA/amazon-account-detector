@@ -19,7 +19,6 @@ describe('settleAuthHtml', () => {
     const html = await settleAuthHtml({
       readHtml: async () => signInHtml,
       waitForNextLoad,
-      isCurrent: () => true,
       deadlineMs: Date.now() + 5_000,
     });
     expect(html).toBe(signInHtml);
@@ -35,7 +34,6 @@ describe('settleAuthHtml', () => {
         return reads === 1 ? wafHtml : signInHtml;
       },
       waitForNextLoad,
-      isCurrent: () => true,
       deadlineMs: Date.now() + 5_000,
     });
     expect(html).toBe(signInHtml);
@@ -51,7 +49,6 @@ describe('settleAuthHtml', () => {
     const html = await settleAuthHtml({
       readHtml: async () => wafHtml,
       waitForNextLoad,
-      isCurrent: () => true,
       deadlineMs: 1_500,
       now: () => now,
     });

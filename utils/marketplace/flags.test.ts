@@ -45,14 +45,14 @@ describe('formatFlagLabel', () => {
     expect(formatFlagLabel(flag, 'العربية', true)).toBe(
       `${LRE}العربية ${flag}${PDF}`,
     );
-    expect(formatFlagLabel('🏳️', 'الكل', true)).toBe(`${LRE}الكل 🏳️${PDF}`);
+    expect(formatFlagLabel('🌐', 'الكل', true)).toBe(`${LRE}الكل 🌐${PDF}`);
   });
 
   it('omits the flag when the OS does not support flag emoji', () => {
     setFlagEmojiSupportForTests(false);
     expect(formatFlagLabel(us, 'English', false)).toBe('English');
     expect(formatFlagLabel(us, 'English', true)).toBe('English');
-    expect(formatFlagLabel('🏳️', 'All', false)).toBe('All');
+    expect(formatFlagLabel('🌐', 'All', false)).toBe('All');
     expect(formatFlagLabel(flag, 'العربية', true)).toBe('العربية');
   });
 

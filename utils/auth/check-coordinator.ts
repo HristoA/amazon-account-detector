@@ -1,15 +1,9 @@
-export interface InFlightCheck<T> {
-  promise: Promise<T>;
-  generation: number;
-  tabId?: number;
-}
-
 /**
- * Per-key in-flight registry: join duplicate work, ignore stale completions.
+ * Per-key in-flight registry: join duplicate work for the same key.
+ * Does not supersede — a second call while in flight returns the same promise.
  */
 export class CheckCoordinator<T> {
-  private readonly inflight = new Map<string, InFlightCheck<T>>();
-  private generation = 0;
+  private readonly inflight = new Map<string, Promise<T>>();
 
   isInFlight(key: string): boolean {
     return this.inflight.has(key);
@@ -19,72 +13,18 @@ export class CheckCoordinator<T> {
     return [...this.inflight.keys()];
   }
 
-  getGeneration(key: string): number | undefined {
-    return this.inflight.get(key)?.generation;
-  }
-
-  setTabId(key: string, tabId: number): void {
-    const entry = this.inflight.get(key);
-    if (entry) {
-      entry.tabId = tabId;
-    }
-  }
-
-  getTabId(key: string): number | undefined {
-    return this.inflight.get(key)?.tabId;
-  }
-
-  /**
-   * Run `fn` for `key`, or join an existing in-flight promise for the same key.
-   * `isCurrent` is true only for the latest generation of that key.
-   */
-  run(
-    key: string,
-    fn: (ctx: {
-      generation: number;
-      isCurrent: () => boolean;
-      setTabId: (tabId: number) => void;
-    }) => Promise<T>,
-  ): Promise<T> {
+  run(key: string, fn: () => Promise<T>): Promise<T> {
     const existing = this.inflight.get(key);
     if (existing) {
-      return existing.promise;
+      return existing;
     }
 
-    const generation = ++this.generation;
-    const isCurrent = () => this.inflight.get(key)?.generation === generation;
-
-    // Register before invoking fn so sync isCurrent() calls see this run.
-    let resolvePromise!: (value: T) => void;
-    let rejectPromise!: (reason?: unknown) => void;
-    const promise = new Promise<T>((resolve, reject) => {
-      resolvePromise = resolve;
-      rejectPromise = reject;
-    });
-    this.inflight.set(key, { promise, generation });
-
-    void fn({
-      generation,
-      isCurrent,
-      setTabId: (tabId) => this.setTabId(key, tabId),
-    }).then(
-      (value) => {
-        clearIfCurrent();
-        resolvePromise(value);
-      },
-      (error: unknown) => {
-        clearIfCurrent();
-        rejectPromise(error);
-      },
-    );
-
-    const clearIfCurrent = () => {
-      const current = this.inflight.get(key);
-      if (current?.generation === generation) {
+    const promise = fn().finally(() => {
+      if (this.inflight.get(key) === promise) {
         this.inflight.delete(key);
       }
-    };
-
+    });
+    this.inflight.set(key, promise);
     return promise;
   }
 }
@@ -111,4 +51,24 @@ export async function mapPool<T, R>(
   );
   await Promise.all(runners);
   return results;
+}
+
+/**
+ * Like {@link mapPool}, but one worker rejection does not abort the rest.
+ * Failed items yield `undefined` in the results array.
+ */
+export async function mapPoolBestEffort<T, R>(
+  items: readonly T[],
+  concurrency: number,
+  worker: (item: T, index: number) => Promise<R>,
+  onError?: (error: unknown, item: T, index: number) => void | Promise<void>,
+): Promise<Array<R | undefined>> {
+  return mapPool(items, concurrency, async (item, index) => {
+    try {
+      return await worker(item, index);
+    } catch (error) {
+      await onError?.(error, item, index);
+      return undefined;
+    }
+  });
 }

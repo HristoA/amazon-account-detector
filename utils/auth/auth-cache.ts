@@ -1,20 +1,26 @@
 import { storage } from 'wxt/utils/storage';
 import type { AuthByMarketplace, AuthCacheEntry } from './auth-types';
+import { seedMissingAuthEntries } from './seed-auth-cache';
+import { expireStaleAuthEntries } from './session-freshness';
 import {
-  ALL_MARKETPLACES_ID,
+  isUnknownSkipOfDefinitive,
+  shouldWriteAuthEntry,
+} from './should-write-auth-entry';
+import {
   DEFAULT_MARKETPLACE_ID,
   isMarketplaceSelection,
+  MARKETPLACES,
   type MarketplaceSelection,
 } from '../marketplace/marketplaces';
 
-export const selectedMarketplaceItem = storage.defineItem<MarketplaceSelection>(
+const selectedMarketplaceItem = storage.defineItem<MarketplaceSelection>(
   'local:selectedMarketplaceId',
   {
     fallback: DEFAULT_MARKETPLACE_ID,
   },
 );
 
-export const localeItem = storage.defineItem<string | null>('local:locale', {
+const localeItem = storage.defineItem<string | null>('local:locale', {
   fallback: null,
 });
 
@@ -51,19 +57,63 @@ export async function getAuthCache(): Promise<AuthByMarketplace> {
   return authByMarketplaceItem.getValue();
 }
 
+/** Serialize RMW updates so parallel Refresh-all writes cannot drop siblings. */
+let authWriteChain: Promise<void> = Promise.resolve();
+
+/**
+ * Persist signed-out seeds (checkedAt 0) for any marketplace missing from the
+ * cache (first run / newly added storefronts).
+ */
+export async function ensureAuthCacheSeeded(): Promise<AuthByMarketplace> {
+  const run = authWriteChain.then(async () => {
+    const current = await authByMarketplaceItem.getValue();
+    const marketplaceIds = MARKETPLACES.map((m) => m.id);
+    const { cache: seeded, didSeed } = seedMissingAuthEntries(
+      current,
+      marketplaceIds,
+    );
+    const { cache, didExpire } = expireStaleAuthEntries(seeded);
+    if (didSeed || didExpire) {
+      await authByMarketplaceItem.setValue(cache);
+    }
+    return cache;
+  });
+  // Keep the chain alive after failures so later writes still serialize.
+  authWriteChain = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
+}
+
 export async function setAuthEntry(
   marketplaceId: string,
   entry: AuthCacheEntry,
 ): Promise<void> {
-  const current = await authByMarketplaceItem.getValue();
-  await authByMarketplaceItem.setValue({
-    ...current,
-    [marketplaceId]: entry,
+  const run = authWriteChain.then(async () => {
+    const now = Date.now();
+    const current = await authByMarketplaceItem.getValue();
+    const previous = current[marketplaceId];
+    if (isUnknownSkipOfDefinitive(previous, entry, now)) {
+      // Still within 1h of last verify — keep status/email; flag last-known.
+      await authByMarketplaceItem.setValue({
+        ...current,
+        [marketplaceId]: { ...previous!, lastKnown: true },
+      });
+      return;
+    }
+    if (!shouldWriteAuthEntry(previous, entry, now)) {
+      return;
+    }
+    // Definitive write (or unknown after session expiry / no prior) clears lastKnown.
+    const written: AuthCacheEntry = { ...entry };
+    delete written.lastKnown;
+    await authByMarketplaceItem.setValue({
+      ...current,
+      [marketplaceId]: written,
+    });
   });
-}
-
-export function isAllSelection(
-  id: MarketplaceSelection,
-): id is typeof ALL_MARKETPLACES_ID {
-  return id === ALL_MARKETPLACES_ID;
+  // Keep the chain alive after failures so later writes still serialize.
+  authWriteChain = run.catch(() => {});
+  await run;
 }

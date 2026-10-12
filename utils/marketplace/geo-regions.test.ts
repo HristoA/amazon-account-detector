@@ -19,6 +19,7 @@ describe('marketplaceGeoRegionId', () => {
     expect(marketplaceGeoRegionId('US')).toBe('americas');
     expect(marketplaceGeoRegionId('GB')).toBe('europe');
     expect(marketplaceGeoRegionId('AE')).toBe('middle_east');
+    expect(marketplaceGeoRegionId('IN')).toBe('india');
     expect(marketplaceGeoRegionId('JP')).toBe('asia_pacific');
     expect(marketplaceGeoRegionId('ZA')).toBe('africa');
   });

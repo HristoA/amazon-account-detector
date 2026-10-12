@@ -16,6 +16,14 @@ export default tseslint.config(
     },
   },
   {
+    files: ['scripts/**/*.{ts,js,mjs}'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
+  {
     ignores: ['.output/**', '.wxt/**', 'node_modules/**', 'coverage/**'],
   },
 );

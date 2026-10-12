@@ -3,7 +3,10 @@ import { countryCodeToFlag } from './flags';
 
 export const ALL_MARKETPLACES_ID = 'all' as const;
 
-export type MarketplaceId = (typeof MARKETPLACES)[number]['id'];
+/** Globe for the All-marketplaces option when the OS can render emoji. */
+export const ALL_MARKETPLACES_EMOJI = '🌐';
+
+type MarketplaceId = (typeof MARKETPLACES)[number]['id'];
 
 export type MarketplaceSelection = MarketplaceId | typeof ALL_MARKETPLACES_ID;
 
@@ -21,7 +24,10 @@ export const DEFAULT_MARKETPLACE_ID = 'amazon.com';
 
 /**
  * Retail Amazon storefronts (SP-API + Creators locales; excludes amazon.cn).
- * Ordered ascending by region name. assoc_handle follows Amazon’s “{cc}flex” convention.
+ * Ordered ascending by region name.
+ * `assocHandle` generally follows Amazon’s “{cc}flex” convention (UK → `gbflex`;
+ * Singapore → `spflex`). Re-verify with `pnpm verify:assoc-handles`
+ * (curl each sign-in URL; WAF/5xx may yield blocked rows — retry later).
  */
 export const MARKETPLACES = [
   {
@@ -149,7 +155,8 @@ export const MARKETPLACES = [
     region: 'Singapore',
     domain: 'amazon.sg',
     suffix: '.sg',
-    assocHandle: 'sgflex',
+    // Amazon’s handle is `spflex` (not `{cc}flex` / `sgflex`).
+    assocHandle: 'spflex',
     countryCode: 'SG',
   },
   {
@@ -218,7 +225,7 @@ export function getMarketplace(id: string): Marketplace | undefined {
   return marketplaceById.get(id);
 }
 
-export function isMarketplaceId(id: string): id is MarketplaceId {
+function isMarketplaceId(id: string): id is MarketplaceId {
   return marketplaceById.has(id);
 }
 
@@ -231,7 +238,11 @@ export function marketplaceFlag(marketplace: Marketplace): string {
 }
 
 export function marketplaceHostPermissions(): string[] {
-  return MARKETPLACES.map((m) => `https://www.${m.domain}/*`);
+  // Include bare and www hosts — Amazon sometimes redirects between them.
+  return MARKETPLACES.flatMap((m) => [
+    `https://www.${m.domain}/*`,
+    `https://${m.domain}/*`,
+  ]);
 }
 
 /**

@@ -6,10 +6,11 @@ import {
 } from '@/utils/marketplace/flags';
 import { GEO_REGIONS } from '@/utils/marketplace/geo-regions';
 import {
+  ALL_MARKETPLACES_EMOJI,
   ALL_MARKETPLACES_ID,
   MARKETPLACES,
 } from '@/utils/marketplace/marketplaces';
-import { renderMarketplaceSelectOptionsHtml } from './marketplace-select-options';
+import { renderMarketplaceSelectOptionsHtml } from './marketplace-select-options.ts';
 
 afterEach(() => {
   resetFlagEmojiSupportCacheForTests();
@@ -21,6 +22,7 @@ const labels: Partial<Record<MessageKey, string>> = {
   geoEurope: 'Europe',
   geoMiddleEast: 'Middle East',
   geoAfrica: 'Africa',
+  geoIndia: 'India',
   geoAsiaPacific: 'Asia-Pacific',
 };
 
@@ -69,6 +71,9 @@ describe('renderMarketplaceSelectOptionsHtml', () => {
       uiRtl: false,
     });
     expect(html).toContain(
+      `<option value="${ALL_MARKETPLACES_ID}">${ALL_MARKETPLACES_EMOJI} All</option>`,
+    );
+    expect(html).toContain(
       '<option value="amazon.com">🇺🇸 United States (amazon.com)</option>',
     );
   });
@@ -86,6 +91,6 @@ describe('renderMarketplaceSelectOptionsHtml', () => {
       `<option value="${ALL_MARKETPLACES_ID}">All</option>`,
     );
     expect(html).not.toContain('🇺🇸');
-    expect(html).not.toContain('🏳️');
+    expect(html).not.toContain(ALL_MARKETPLACES_EMOJI);
   });
 });

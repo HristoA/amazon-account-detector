@@ -1,6 +1,25 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { setActiveLocale } from '@/utils/i18n/i18n';
-import { formatHeaderFreshness, latestCheckedAt } from './header-freshness';
+import {
+  cacheAdvancedDuringRefresh,
+  formatHeaderFreshness,
+  latestCheckedAt,
+  latestEntryIsLastKnown,
+} from './header-freshness.ts';
+
+describe('cacheAdvancedDuringRefresh', () => {
+  it('is false when checkedAt did not advance (e.g. unknown write skipped)', () => {
+    expect(cacheAdvancedDuringRefresh(100, 100)).toBe(false);
+    expect(cacheAdvancedDuringRefresh(100, undefined)).toBe(false);
+    expect(cacheAdvancedDuringRefresh(100, 0)).toBe(false);
+  });
+
+  it('is true when a new or newer checkedAt is present', () => {
+    expect(cacheAdvancedDuringRefresh(undefined, 100)).toBe(true);
+    expect(cacheAdvancedDuringRefresh(0, 100)).toBe(true);
+    expect(cacheAdvancedDuringRefresh(100, 200)).toBe(true);
+  });
+});
 
 describe('latestCheckedAt', () => {
   it('returns undefined when nothing has been checked', () => {
@@ -28,6 +47,26 @@ describe('latestCheckedAt', () => {
         ['us'],
       ),
     ).toBe(100);
+  });
+});
+
+describe('latestEntryIsLastKnown', () => {
+  it('is true when the newest entry is flagged lastKnown', () => {
+    expect(
+      latestEntryIsLastKnown({
+        us: { checkedAt: 100 },
+        de: { checkedAt: 300, lastKnown: true },
+      }),
+    ).toBe(true);
+  });
+
+  it('is false when a newer definitive entry exists', () => {
+    expect(
+      latestEntryIsLastKnown({
+        us: { checkedAt: 100, lastKnown: true },
+        de: { checkedAt: 300 },
+      }),
+    ).toBe(false);
   });
 });
 
@@ -69,5 +108,12 @@ describe('formatHeaderFreshness', () => {
     const checkedAt = now - 5 * 60_000;
     const label = formatHeaderFreshness(checkedAt, now, 'en');
     expect(label.toLowerCase()).toContain('minute');
+  });
+
+  it('prefixes last-known when the cache was not re-verified', () => {
+    const now = 1_000_000;
+    expect(formatHeaderFreshness(now - 5_000, now, 'en', true)).toBe(
+      'Last known · Checked 5s ago',
+    );
   });
 });

@@ -1,11 +1,5 @@
 import './style.css';
-import type { AuthCacheEntry } from '@/utils/auth/auth-types';
-import {
-  formatCheckedAt,
-  getActiveLocale,
-  setActiveLocale,
-  t,
-} from '@/utils/i18n/i18n';
+import { getActiveLocale, setActiveLocale, t } from '@/utils/i18n/i18n';
 import {
   applyDocumentLocale,
   getLocale,
@@ -13,11 +7,7 @@ import {
   localeFlag,
 } from '@/utils/i18n/locales';
 import { formatFlagLabel } from '@/utils/marketplace/flags';
-import {
-  countryBadgeShowsFlag,
-  displayCountryBadge,
-  groupMarketplacesByGeoRegion,
-} from '@/utils/marketplace/geo-regions';
+import { groupMarketplacesByGeoRegion } from '@/utils/marketplace/geo-regions';
 import {
   ALL_MARKETPLACES_ID,
   buildMarketplaceActionUrl,
@@ -28,30 +18,38 @@ import {
 } from '@/utils/marketplace/marketplaces';
 import {
   isExtensionMessage,
+  parsePopupMessageResponse,
   type ExtensionMessage,
   type PopupState,
 } from '@/utils/messaging/messages';
+import { escapeAttr } from '@/utils/popup/escape-attr';
+import { escapeHtml } from '@/utils/popup/escape-html';
 import {
+  cacheAdvancedDuringRefresh,
   formatHeaderFreshness,
   JUST_NOW_MS,
   latestCheckedAt,
+  latestEntryIsLastKnown,
 } from '@/utils/popup/header-freshness';
 import {
   BACK_CHEVRON_ICON,
   REFRESH_ICON,
   SETTINGS_ICON,
 } from '@/utils/popup/header-icons';
-import { displayMarketEmail } from '@/utils/popup/market-card-display';
+import { renderMarketStatusMark } from '@/utils/popup/market-card-display';
+import { buildMarketCardRow } from '@/utils/popup/market-card-row';
 import { renderMarketplaceSelectOptionsHtml } from '@/utils/popup/marketplace-select-options';
+import { shouldTriggerPopupOpenRefresh } from '@/utils/popup/popup-open-refresh';
 import {
   createRefreshSpinnerElement,
   syncRefreshButtonSpinner,
 } from '@/utils/popup/refresh-button-spinner';
+import { renderMarketCardHtml } from '@/utils/popup/render-market-card';
+import { resolveCheckResponse } from '@/utils/popup/resolve-check-response';
 import { countStatuses } from '@/utils/popup/status-counts';
 import {
   isStatusFilter,
   matchesStatusFilter,
-  resolveFilterStatus,
   STATUS_FILTERS,
   type StatusFilter,
 } from '@/utils/popup/status-filter';
@@ -59,6 +57,10 @@ import {
   getStoredStatusFilter,
   setStoredStatusFilter,
 } from '@/utils/popup/status-filter-preference';
+import {
+  renderStatusFilterHtml,
+  statusTablistAriaLabel,
+} from '@/utils/popup/status-filter-ui';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 
@@ -73,14 +75,19 @@ let statusFilter: StatusFilter = 'all';
 let popupView: 'main' | 'settings' = 'main';
 /** True while a check for the current selection is in flight. */
 let refreshWasInFlight = false;
+/**
+ * `checkedAt` snapshot when the current selection's refresh started.
+ * Used so mid-batch AUTH_UPDATED advances do not hide a real completion
+ * (or falsely claim "just now" when only trailing unknowns were skipped).
+ */
+let refreshStartedCheckedAt: number | undefined = undefined;
 /** Wall time when the current selection's refresh finished — forces "just now". */
 let refreshCompletedAt: number | null = null;
 let freshnessTickerId: ReturnType<typeof setInterval> | null = null;
-
-const STATUS_CHECK_ICON = `<svg class="status-pill-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5 6.5 11.5 12.5 4.5"/></svg>`;
-const STATUS_MINUS_ICON = `<svg class="status-pill-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8h8"/></svg>`;
-const STATUS_UNKNOWN_ICON = `<svg class="status-pill-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M6.2 6.2a1.8 1.8 0 1 1 2.5 1.6c-.5.3-.9.7-.9 1.4"/><path d="M8 11.5h.01"/></svg>`;
-const OPEN_EXTERNAL_ICON = `<svg class="market-open-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 11.5 11.5 4.5"/><path d="M6.5 4.5h5v5"/></svg>`;
+/** Wall time when this popup instance opened. */
+const popupOpenedAt = Date.now();
+/** Last automatic open-duration refresh (0 = never). */
+let lastOpenAutoRefreshAt = 0;
 
 init().catch((error) => {
   app.textContent = String(error);
@@ -90,10 +97,7 @@ browser.runtime.onMessage.addListener((message) => {
   if (!isExtensionMessage(message)) {
     return;
   }
-  if (
-    (message.type === 'AUTH_UPDATED' || message.type === 'CHECK_STATUS') &&
-    message.payload
-  ) {
+  if (message.type === 'AUTH_UPDATED' && message.payload) {
     applyPopupState(message.payload);
     render();
   }
@@ -118,8 +122,19 @@ function isSelectionRefreshing(s: PopupState): boolean {
 /** Keep popup state and detect refresh end → show "Checked just now". */
 function applyPopupState(next: PopupState): void {
   const refreshing = isSelectionRefreshing(next);
+  if (!refreshWasInFlight && refreshing) {
+    refreshStartedCheckedAt = headerCheckedAt();
+    refreshCompletedAt = null;
+  }
   if (refreshWasInFlight && !refreshing) {
-    refreshCompletedAt = Date.now();
+    const nextCheckedAt =
+      next.selectedMarketplaceId === ALL_MARKETPLACES_ID
+        ? latestCheckedAt(next.authByMarketplace)
+        : latestCheckedAt(next.authByMarketplace, [next.selectedMarketplaceId]);
+    if (cacheAdvancedDuringRefresh(refreshStartedCheckedAt, nextCheckedAt)) {
+      refreshCompletedAt = Date.now();
+    }
+    refreshStartedCheckedAt = undefined;
   }
   refreshWasInFlight = refreshing;
   state = next;
@@ -133,7 +148,22 @@ function startFreshnessTicker(): void {
     if (freshness) {
       freshness.textContent = headerFreshnessLabel();
     }
+    maybeAutoRefreshForOpenDuration();
   }, 1_000);
+}
+
+/** Re-check the current selection every 30 minutes while the popup stays open. */
+function maybeAutoRefreshForOpenDuration(): void {
+  if (!bootstrapped || !state) return;
+  if (isSelectionRefreshing(state)) return;
+  const now = Date.now();
+  if (
+    !shouldTriggerPopupOpenRefresh(popupOpenedAt, now, lastOpenAutoRefreshAt)
+  ) {
+    return;
+  }
+  lastOpenAutoRefreshAt = now;
+  void requestCheck(state.selectedMarketplaceId);
 }
 
 function applyLocaleFromState(s: PopupState): void {
@@ -159,13 +189,28 @@ function headerCheckedAt(): number | undefined {
   ]);
 }
 
+function headerIsLastKnown(): boolean {
+  if (!state) return false;
+  if (state.selectedMarketplaceId === ALL_MARKETPLACES_ID) {
+    return latestEntryIsLastKnown(state.authByMarketplace);
+  }
+  return latestEntryIsLastKnown(state.authByMarketplace, [
+    state.selectedMarketplaceId,
+  ]);
+}
+
 function headerFreshnessLabel(): string {
   if (!state) return t('loading');
   const now = Date.now();
-  if (refreshCompletedAt != null && now - refreshCompletedAt < JUST_NOW_MS) {
+  const lastKnown = headerIsLastKnown();
+  if (
+    !lastKnown &&
+    refreshCompletedAt != null &&
+    now - refreshCompletedAt < JUST_NOW_MS
+  ) {
     return t('checkedJustNow');
   }
-  return formatHeaderFreshness(headerCheckedAt(), now, state.locale);
+  return formatHeaderFreshness(headerCheckedAt(), now, state.locale, lastKnown);
 }
 
 function refreshLabel(): string {
@@ -177,7 +222,7 @@ function refreshLabel(): string {
 
 function render(): void {
   if (!state) {
-    app.innerHTML = `<p class="muted">${t('loading')}</p>`;
+    app.innerHTML = `<p class="muted">${escapeHtml(t('loading'))}</p>`;
     paintedSelection = null;
     paintedLocale = null;
     return;
@@ -217,12 +262,13 @@ function render(): void {
       state.inFlightMarketplaceIds.includes(state.selectedMarketplaceId));
 
   const titleIconUrl = browser.runtime.getURL('/logo.svg');
-  const refreshAria = refreshLabel();
+  const refreshAria = escapeAttr(refreshLabel());
+  const settingsLabel = escapeAttr(t('settings'));
   const footerHtml =
     popupView === 'settings'
       ? `<footer class="app-footer">
-      <span>${t('version')} ${extensionVersion()}</span>
-      <span>${t('notAffiliated')}</span>
+      <span>${escapeHtml(t('version'))} ${escapeHtml(extensionVersion())}</span>
+      <span>${escapeHtml(t('notAffiliated'))}</span>
     </footer>`
       : '';
 
@@ -237,8 +283,8 @@ function render(): void {
           height="36"
         />
         <div class="app-brand-text">
-          <div class="app-title-text">${t('appTitle')}</div>
-          <div class="app-freshness" id="header-freshness">${headerFreshnessLabel()}</div>
+          <div class="app-title-text">${escapeHtml(t('appTitle'))}</div>
+          <div class="app-freshness" id="header-freshness">${escapeHtml(headerFreshnessLabel())}</div>
         </div>
       </div>
       <div class="app-header-actions">
@@ -257,8 +303,8 @@ function render(): void {
           id="open-settings"
           class="btn-icon btn-icon-settings${popupView === 'settings' ? ' is-active' : ''}"
           type="button"
-          title="${t('settings')}"
-          aria-label="${t('settings')}"
+          title="${settingsLabel}"
+          aria-label="${settingsLabel}"
           aria-pressed="${popupView === 'settings' ? 'true' : 'false'}"
         >
           ${SETTINGS_ICON}
@@ -315,22 +361,22 @@ function render(): void {
 }
 
 function renderSettingsView(): string {
+  const backLabel = escapeAttr(t('back'));
   return `
     <div class="settings-view">
       <button
         id="settings-back"
         class="settings-back"
         type="button"
-        aria-label="${t('back')}"
+        aria-label="${backLabel}"
       >
         ${BACK_CHEVRON_ICON}
-        <span>${t('settings')}</span>
+        <span>${escapeHtml(t('settings'))}</span>
       </button>
 
       <div class="field">
-        <label for="language">${t('language')}</label>
+        <label for="language">${escapeHtml(t('language'))}</label>
         <select id="language"></select>
-        <p class="field-help">${t('languageOfPopup')}</p>
       </div>
     </div>
   `;
@@ -342,7 +388,7 @@ function bindSettingsView(root: ParentNode): void {
   const languageSelect = root.querySelector<HTMLSelectElement>('#language')!;
   languageSelect.innerHTML = LOCALES.map(
     (locale) =>
-      `<option value="${locale.code}">${formatFlagLabel(localeFlag(locale), locale.label, isRtlUi())}</option>`,
+      `<option value="${escapeAttr(locale.code)}">${formatFlagLabel(localeFlag(locale), locale.label, isRtlUi())}</option>`,
   ).join('');
   languageSelect.value = state.locale;
   languageSelect.addEventListener('change', () => {
@@ -360,11 +406,11 @@ function renderSingleView(marketplaceId: string): string {
   const marketplace = getMarketplace(marketplaceId);
   const card = marketplace
     ? renderMarketCard(marketplace, false)
-    : `<article class="market-card unknown"><div class="status-pill unknown">${t('unknown')}</div></article>`;
+    : `<article class="market-card unknown"><div class="market-domain">${escapeHtml(t('unknown'))}</div></article>`;
 
   return `
     <div class="field">
-      <label for="marketplace">${t('marketplace')}</label>
+      <label for="marketplace">${escapeHtml(t('marketplace'))}</label>
       <select id="marketplace"></select>
     </div>
     <div class="market-list market-list-single">
@@ -391,7 +437,7 @@ function renderAllView(): string {
       return `
         <section class="geo-section" data-geo-region="${group.id}"${sectionHidden}>
           <div class="geo-section-head">
-            <span class="geo-section-title">${t(group.labelKey)}</span>
+            <span class="geo-section-title">${escapeHtml(t(group.labelKey))}</span>
             <span class="geo-section-count">${visibleCount}</span>
           </div>
           <div class="geo-section-cards">${cards}</div>
@@ -404,16 +450,18 @@ function renderAllView(): string {
 
   return `
     <div class="field">
-      <label for="marketplace">${t('marketplace')}</label>
+      <label for="marketplace">${escapeHtml(t('marketplace'))}</label>
       <select id="marketplace"></select>
     </div>
     <div class="market-table">
       <div
         class="status-filters"
         role="tablist"
-        aria-label="${t('status')}"
+        aria-label="${statusTablistAriaLabel(t)}"
       >
-        ${STATUS_FILTERS.map((filter) => renderStatusFilter(filter, counts[filter])).join('')}
+        ${STATUS_FILTERS.map((filter) =>
+          renderStatusFilterHtml(filter, counts[filter], statusFilter, t),
+        ).join('')}
       </div>
       <div
         class="market-list"
@@ -422,7 +470,7 @@ function renderAllView(): string {
         aria-labelledby="status-tab-${statusFilter}"
       >
         ${sections}
-        <p class="filter-empty muted"${emptyHidden}>${filterEmptyMessage()}</p>
+        <p class="filter-empty muted"${emptyHidden}>${escapeHtml(filterEmptyMessage())}</p>
       </div>
     </div>
   `;
@@ -432,46 +480,13 @@ function renderMarketCard(
   marketplace: Marketplace,
   forAllList: boolean,
 ): string {
-  const row = allViewRow(marketplace);
-  const hidden =
-    forAllList && !matchesStatusFilter(statusFilter, row.linkStatus)
-      ? ' hidden'
-      : '';
-  const dataAttr = forAllList ? ` data-marketplace-id="${marketplace.id}"` : '';
-  const href = buildMarketplaceActionUrl(marketplace, row.linkStatus);
-  const showsFlag = countryBadgeShowsFlag(marketplace.countryCode);
-  const codeClass = showsFlag ? 'market-code market-code--flag' : 'market-code';
-
-  return `
-    <a
-      class="market-card ${row.statusClass}"
-      href="${href}"
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label="${marketplace.region} (${marketplace.domain})"
-      ${dataAttr}${hidden}
-    >
-      <div class="${codeClass}" aria-hidden="true">${displayCountryBadge(marketplace.countryCode)}</div>
-      <div class="market-card-body">
-        <div class="market-email">${row.email}</div>
-        <div class="market-checked">${row.checkedLabel}</div>
-      </div>
-      <div class="market-card-trailing">
-        ${renderStatusPill(row.statusClass, row.status)}
-        ${OPEN_EXTERNAL_ICON}
-      </div>
-    </a>
-  `;
-}
-
-function renderStatusPill(statusClass: string, label: string): string {
-  const icon =
-    statusClass === 'ok'
-      ? STATUS_CHECK_ICON
-      : statusClass === 'out'
-        ? STATUS_MINUS_ICON
-        : STATUS_UNKNOWN_ICON;
-  return `<div class="status-pill ${statusClass}">${icon}<span>${label}</span></div>`;
+  return renderMarketCardHtml({
+    marketplace,
+    row: allViewRow(marketplace),
+    forAllList,
+    statusFilter,
+    checkingLabel: t('checking'),
+  });
 }
 
 function currentStatusCounts() {
@@ -526,15 +541,41 @@ function patchAllView(): void {
     card.className = `market-card ${row.statusClass}`;
     card.hidden = !matchesStatusFilter(statusFilter, row.linkStatus);
     card.href = buildMarketplaceActionUrl(m, row.linkStatus);
+    card.setAttribute(
+      'aria-label',
+      `${m.domain}, ${row.status}${row.email ? `, ${row.email}` : ''}${
+        row.updating ? `, ${t('checking')}` : ''
+      }`,
+    );
+    card.title = row.tooltip;
 
-    const pill = card.querySelector('.status-pill');
-    if (pill) {
-      pill.outerHTML = renderStatusPill(row.statusClass, row.status);
+    const codeWrap = card.querySelector('.market-code-wrap');
+    if (codeWrap) {
+      const mark = codeWrap.querySelector('.market-status-mark');
+      mark?.remove();
+      const markHtml = renderMarketStatusMark(
+        row.statusClass,
+        row.updating,
+        row.lastKnown,
+      );
+      if (markHtml) {
+        codeWrap.insertAdjacentHTML('beforeend', markHtml);
+      }
     }
 
+    const body = card.querySelector('.market-card-body');
     const emailEl = card.querySelector<HTMLElement>('.market-email');
-    if (emailEl) {
-      emailEl.textContent = row.email;
+    if (row.email) {
+      if (emailEl) {
+        emailEl.textContent = row.email;
+      } else if (body) {
+        const created = document.createElement('div');
+        created.className = 'market-email';
+        created.textContent = row.email;
+        body.appendChild(created);
+      }
+    } else {
+      emailEl?.remove();
     }
 
     const checkedEl = card.querySelector<HTMLElement>('.market-checked');
@@ -594,41 +635,6 @@ function updateFilterEmptyVisibility(): void {
   }
 }
 
-function statusFilterClass(filter: StatusFilter): string {
-  if (filter === 'logged_in') return 'ok';
-  if (filter === 'logged_out') return 'out';
-  if (filter === 'unknown') return 'unknown';
-  return 'all';
-}
-
-function statusFilterLabel(filter: StatusFilter): string {
-  if (filter === 'logged_in') return t('loggedIn');
-  if (filter === 'logged_out') return t('loggedOut');
-  if (filter === 'unknown') return t('unknown');
-  return t('allStatuses');
-}
-
-function renderStatusFilter(filter: StatusFilter, count: number): string {
-  const selected = filter === statusFilter;
-  const colorClass = statusFilterClass(filter);
-  return `<button
-      type="button"
-      class="status-filter ${colorClass}"
-      role="tab"
-      id="status-tab-${filter}"
-      data-status-filter="${filter}"
-      aria-selected="${selected ? 'true' : 'false'}"
-      aria-controls="status-tab-panel"
-      tabindex="${selected ? '0' : '-1'}"
-    >
-      <span class="status-filter-count">
-        <span class="status-filter-number">${count}</span>
-        <span class="status-filter-dot" aria-hidden="true"></span>
-      </span>
-      <span class="status-filter-label">${statusFilterLabel(filter)}</span>
-    </button>`;
-}
-
 function bindStatusTabs(root: ParentNode): void {
   const tablist = root.querySelector('.status-filters');
   if (!tablist) return;
@@ -668,37 +674,18 @@ function syncStatusFilters(): void {
   }
 }
 
-function allViewRow(m: Marketplace): {
-  statusClass: string;
-  status: string;
-  email: string;
-  checkedLabel: string;
-  linkStatus: AuthCacheEntry['status'] | undefined;
-} {
+function allViewRow(m: Marketplace) {
   const entry = state?.authByMarketplace[m.id];
-  const inFlight = state?.inFlightMarketplaceIds.includes(m.id);
-  const resolved = resolveFilterStatus(entry?.status);
-  const statusClass = inFlight
-    ? 'unknown'
-    : resolved === 'logged_in'
-      ? 'ok'
-      : resolved === 'logged_out'
-        ? 'out'
-        : 'unknown';
-  return {
-    statusClass,
-    status: inFlight ? t('checking') : statusLabel(entry),
-    email: displayMarketEmail(entry),
-    checkedLabel: formatCheckedAt(entry?.checkedAt, getActiveLocale()),
-    linkStatus: entry?.status,
-  };
-}
-
-function statusLabel(entry: AuthCacheEntry | undefined): string {
-  if (!entry) return t('unknown');
-  if (entry.status === 'logged_in') return t('loggedIn');
-  if (entry.status === 'logged_out') return t('loggedOut');
-  return t('unknown');
+  const updating =
+    state?.allRefreshInFlight === true ||
+    state?.inFlightMarketplaceIds.includes(m.id) === true;
+  return buildMarketCardRow({
+    marketplace: m,
+    entry,
+    updating,
+    locale: getActiveLocale(),
+    t,
+  });
 }
 
 async function onMarketplaceChange(
@@ -723,9 +710,6 @@ async function onLocaleChange(locale: string): Promise<void> {
 async function requestCheck(
   marketplaceId: MarketplaceSelection,
 ): Promise<void> {
-  if (!bootstrapped && state) {
-    // still ok
-  }
   applyPopupState({
     ...state!,
     allRefreshInFlight:
@@ -737,7 +721,15 @@ async function requestCheck(
   });
   render();
 
-  applyPopupState(await sendMessage({ type: 'CHECK_AUTH', marketplaceId }));
+  const optimisticState = state!;
+  applyPopupState(
+    await resolveCheckResponse({
+      marketplaceId,
+      optimisticState,
+      checkAuth: () => sendMessage({ type: 'CHECK_AUTH', marketplaceId }),
+      getPopupState: () => sendMessage({ type: 'GET_POPUP_STATE' }),
+    }),
+  );
   render();
 }
 
@@ -746,10 +738,5 @@ function unique(values: string[]): string[] {
 }
 
 async function sendMessage(message: ExtensionMessage): Promise<PopupState> {
-  const response = (await browser.runtime.sendMessage(message)) as
-    PopupState | { error: string };
-  if (response && 'error' in response) {
-    throw new Error(response.error);
-  }
-  return response as PopupState;
+  return parsePopupMessageResponse(await browser.runtime.sendMessage(message));
 }

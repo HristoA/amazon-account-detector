@@ -43,11 +43,13 @@ describe('marketplaces', () => {
     expect(buildSignInUrl(us)).toContain('openid.assoc_handle=usflex');
   });
 
-  it('exposes host permissions for every marketplace', () => {
+  it('exposes host permissions for every marketplace (www + bare)', () => {
     const perms = marketplaceHostPermissions();
     expect(perms).toContain('https://www.amazon.com/*');
+    expect(perms).toContain('https://amazon.com/*');
     expect(perms).toContain('https://www.amazon.com.be/*');
-    expect(perms).toHaveLength(MARKETPLACES.length);
+    expect(perms).toContain('https://amazon.com.be/*');
+    expect(perms).toHaveLength(MARKETPLACES.length * 2);
   });
 
   it('maps country codes to flag emoji', () => {

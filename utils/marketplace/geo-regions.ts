@@ -2,7 +2,7 @@ import { countryCodeToFlag, supportsFlagEmoji } from './flags';
 import type { Marketplace } from './marketplaces';
 
 export type GeoRegionId =
-  'americas' | 'europe' | 'middle_east' | 'africa' | 'asia_pacific';
+  'americas' | 'europe' | 'middle_east' | 'africa' | 'india' | 'asia_pacific';
 
 export interface GeoRegionDefinition {
   id: GeoRegionId;
@@ -12,11 +12,15 @@ export interface GeoRegionDefinition {
     | 'geoEurope'
     | 'geoMiddleEast'
     | 'geoAfrica'
+    | 'geoIndia'
     | 'geoAsiaPacific';
   countryCodes: readonly string[];
 }
 
-/** Geographic buckets for the All-marketplaces list (screenshot section headers). */
+/**
+ * Geographic buckets for the All-marketplaces list.
+ * India is its own section (product brief: EMEA / India, not Asia-Pacific).
+ */
 export const GEO_REGIONS: readonly GeoRegionDefinition[] = [
   {
     id: 'americas',
@@ -39,9 +43,14 @@ export const GEO_REGIONS: readonly GeoRegionDefinition[] = [
     countryCodes: ['ZA'],
   },
   {
+    id: 'india',
+    labelKey: 'geoIndia',
+    countryCodes: ['IN'],
+  },
+  {
     id: 'asia_pacific',
     labelKey: 'geoAsiaPacific',
-    countryCodes: ['SG', 'AU', 'JP', 'IN'],
+    countryCodes: ['SG', 'AU', 'JP'],
   },
 ] as const;
 

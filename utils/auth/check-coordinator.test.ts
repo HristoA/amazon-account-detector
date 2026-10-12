@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { CheckCoordinator, mapPool } from './check-coordinator';
+import {
+  CheckCoordinator,
+  mapPool,
+  mapPoolBestEffort,
+} from './check-coordinator';
 
 describe('CheckCoordinator', () => {
   it('joins concurrent runs for the same key', async () => {
@@ -19,28 +23,28 @@ describe('CheckCoordinator', () => {
     expect(fn).toHaveBeenCalledTimes(1);
   });
 
-  it('marks only the latest generation as current after a new run starts', async () => {
+  it('allows a new run after the previous one finishes', async () => {
     const coordinator = new CheckCoordinator<number>();
-    let firstIsCurrent: (() => boolean) | undefined;
+    const first = vi.fn(async () => 1);
+    const second = vi.fn(async () => 2);
 
-    const first = coordinator.run('m', async ({ isCurrent }) => {
-      firstIsCurrent = isCurrent;
-      await new Promise((r) => setTimeout(r, 30));
-      return 1;
-    });
+    expect(await coordinator.run('m', first)).toBe(1);
+    expect(await coordinator.run('m', second)).toBe(2);
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(second).toHaveBeenCalledTimes(1);
+    expect(coordinator.isInFlight('m')).toBe(false);
+  });
 
-    // Wait a tick so first is registered, then it still holds the slot so
-    // second joins — to test stale generation, finish first then start second.
-    await first;
-    expect(firstIsCurrent?.()).toBe(false);
+  it('clears in-flight state when the run rejects', async () => {
+    const coordinator = new CheckCoordinator<number>();
+    await expect(
+      coordinator.run('m', async () => {
+        throw new Error('boom');
+      }),
+    ).rejects.toThrow('boom');
+    expect(coordinator.isInFlight('m')).toBe(false);
 
-    let secondGen = 0;
-    await coordinator.run('m', async ({ generation, isCurrent }) => {
-      secondGen = generation;
-      expect(isCurrent()).toBe(true);
-      return 2;
-    });
-    expect(secondGen).toBeGreaterThan(0);
+    expect(await coordinator.run('m', async () => 1)).toBe(1);
   });
 });
 
@@ -59,5 +63,24 @@ describe('mapPool', () => {
     });
 
     expect(maxActive).toBeLessThanOrEqual(2);
+  });
+});
+
+describe('mapPoolBestEffort', () => {
+  it('continues after a worker throws and reports the error', async () => {
+    const onError = vi.fn();
+    const results = await mapPoolBestEffort(
+      ['a', 'b', 'c'],
+      2,
+      async (id) => {
+        if (id === 'b') throw new Error('boom');
+        return id.toUpperCase();
+      },
+      onError,
+    );
+
+    expect(results).toEqual(['A', undefined, 'C']);
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError.mock.calls[0]?.[1]).toBe('b');
   });
 });

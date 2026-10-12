@@ -4,7 +4,6 @@ export interface SettleAuthHtmlOptions {
   readHtml: () => Promise<string>;
   /** Wait for the next navigation complete (not the current one). */
   waitForNextLoad: () => Promise<void>;
-  isCurrent: () => boolean;
   deadlineMs: number;
   now?: () => number;
 }
@@ -19,15 +18,12 @@ export async function settleAuthHtml(
   let html = await options.readHtml();
 
   while (isAwsWafChallengeHtml(html)) {
-    if (!options.isCurrent() || now() >= options.deadlineMs) {
+    if (now() >= options.deadlineMs) {
       return html;
     }
     try {
       await options.waitForNextLoad();
     } catch {
-      return html;
-    }
-    if (!options.isCurrent()) {
       return html;
     }
     html = await options.readHtml();

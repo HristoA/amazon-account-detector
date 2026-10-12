@@ -60,17 +60,34 @@ export function t(
 export function formatCheckedAt(
   checkedAt: number | undefined,
   locale: string,
+  lastKnown = false,
+  nowMs: number = Date.now(),
 ): string {
   if (!checkedAt) {
     return t('neverChecked');
   }
-  // Local datetime string with seconds (e.g. "10/27/2023, 2:30:45 PM").
-  return new Date(checkedAt).toLocaleString(locale, {
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    second: '2-digit',
-  });
+  const whenDate = new Date(checkedAt);
+  const now = new Date(nowMs);
+  // Same local calendar day → time only; else short date + time (always with seconds).
+  const sameDay =
+    whenDate.getFullYear() === now.getFullYear() &&
+    whenDate.getMonth() === now.getMonth() &&
+    whenDate.getDate() === now.getDate();
+  const when = sameDay
+    ? whenDate.toLocaleTimeString(locale, {
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+      })
+    : whenDate.toLocaleString(locale, {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+  if (lastKnown) {
+    return t('lastKnownChecked', { when });
+  }
+  return when;
 }

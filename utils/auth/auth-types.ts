@@ -10,6 +10,11 @@ export interface AuthCacheEntry {
   email?: string;
   checkedAt: number;
   source?: 'fetch' | 'tab';
+  /**
+   * True when a later check returned `unknown` and we kept this definitive
+   * status/email — UI should present it as last-known, not freshly verified.
+   */
+  lastKnown?: boolean;
 }
 
 export type AuthByMarketplace = Record<string, AuthCacheEntry>;

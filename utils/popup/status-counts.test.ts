@@ -22,4 +22,18 @@ describe('countStatuses', () => {
       unknown: 2,
     });
   });
+
+  it('counts first-run seeds as signed out', () => {
+    expect(
+      countStatuses(['a', 'b'], {
+        a: { status: 'logged_out', checkedAt: 0 },
+        b: { status: 'logged_out', checkedAt: 0 },
+      }),
+    ).toEqual({
+      all: 2,
+      logged_in: 0,
+      logged_out: 2,
+      unknown: 0,
+    });
+  });
 });

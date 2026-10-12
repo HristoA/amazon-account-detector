@@ -2,6 +2,10 @@ import type { ParseResult } from './auth-types';
 
 const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
 
+/** Tokens that identify Amazon account-switcher UI (not marketing “Switch account” copy). */
+export const SWITCHER_TOKEN_RE =
+  /ap_switch_account|ap-account-switcher|cvf-account-switcher|account-switcher/i;
+
 /**
  * AWS WAF bot interstitial Amazon serves before some marketplace sign-in pages.
  * Fetch gets this HTML; a real tab runs challenge.js then reloads to the real page.
@@ -17,30 +21,15 @@ export function isAwsWafChallengeHtml(html: string): boolean {
 
 /**
  * Heuristic parse of Amazon account-switcher / sign-in HTML.
- * Logged-in pages expose the account email; logged-out pages show the sign-in form.
+ * Prefer structured switcher attributes; also accept emails near switcher tokens
+ * (Amazon nests emails under profile-details / a-row without `data-email`).
  */
 export function parseAuthHtml(html: string): ParseResult {
   const text = html.replace(/\0/g, '');
 
-  const switcherEmail =
-    matchAttr(text, /data-email=["']([^"']+)["']/i) ??
-    matchAttr(text, /name=["']email["'][^>]*value=["']([^"']+)["']/i) ??
-    matchAttr(
-      text,
-      /class=["'][^"']*cvf-account-switcher-profile-details[^"']*["'][^>]*>\s*([^<]*@[^<]*)/i,
-    );
-
-  const emailFromSwitcher = switcherEmail?.match(EMAIL_RE)?.[0];
-  if (emailFromSwitcher) {
-    return { kind: 'logged_in', email: emailFromSwitcher };
-  }
-
-  // Common account-list markup: <div class="a-row">email@example.com</div>
-  const accountListMatch = text.match(
-    /(?:ap_switch_account|account-switcher|cvf-account-switcher)[\s\S]{0,4000}?([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i,
-  );
-  if (accountListMatch?.[1]) {
-    return { kind: 'logged_in', email: accountListMatch[1] };
+  const structured = extractSwitcherEmail(text);
+  if (structured) {
+    return { kind: 'logged_in', email: structured };
   }
 
   const hasPasswordField =
@@ -65,12 +54,52 @@ export function parseAuthHtml(html: string): ParseResult {
     return { kind: 'logged_out' };
   }
 
-  const anyEmail = text.match(EMAIL_RE)?.[0];
-  if (anyEmail && /switch.?account|account.?switcher/i.test(text)) {
-    return { kind: 'logged_in', email: anyEmail };
+  return { kind: 'indeterminate' };
+}
+
+/**
+ * Emails from dedicated account-switcher markup.
+ * Rejects marketing pages that only mention “switch account” in copy.
+ */
+function extractSwitcherEmail(html: string): string | undefined {
+  // Require switcher tokens — bare data-email on marketing pages is not enough.
+  if (SWITCHER_TOKEN_RE.test(html)) {
+    const dataEmails = [...html.matchAll(/data-email=["']([^"']+)["']/gi)]
+      .map((m) => m[1]?.match(EMAIL_RE)?.[0])
+      .filter((email): email is string => Boolean(email));
+    if (dataEmails[0]) {
+      return dataEmails[0];
+    }
   }
 
-  return { kind: 'indeterminate' };
+  // Continue-as / switcher often expose the address as a named email value.
+  const namedEmail = matchAttr(
+    html,
+    /name=["']email["'][^>]*value=["']([^"']+)["']/i,
+  );
+  const fromNamed = namedEmail?.match(EMAIL_RE)?.[0];
+  if (fromNamed && SWITCHER_TOKEN_RE.test(html)) {
+    return fromNamed;
+  }
+
+  // Nested profile-details: email may be in a child a-row, not immediate text.
+  const profileWindow = html.match(
+    /cvf-account-switcher-profile-details[\s\S]{0,800}?([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i,
+  );
+  if (profileWindow?.[1]) {
+    return profileWindow[1];
+  }
+
+  // Common account-list markup: switcher token, then email within a bounded window.
+  // Do not require a matching closing tag — Amazon nests many layers of divs.
+  const accountListMatch = html.match(
+    /(?:ap_switch_account|ap-account-switcher|cvf-account-switcher|account-switcher)[\s\S]{0,4000}?([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i,
+  );
+  if (accountListMatch?.[1]) {
+    return accountListMatch[1];
+  }
+
+  return undefined;
 }
 
 function matchAttr(html: string, re: RegExp): string | undefined {

@@ -1,9 +1,9 @@
 import { storage } from 'wxt/utils/storage';
 import { isStatusFilter, type StatusFilter } from './status-filter';
 
-export const DEFAULT_STATUS_FILTER: StatusFilter = 'all';
+const DEFAULT_STATUS_FILTER: StatusFilter = 'all';
 
-export const statusFilterItem = storage.defineItem<StatusFilter>(
+const statusFilterItem = storage.defineItem<StatusFilter>(
   'local:statusFilter',
   {
     fallback: DEFAULT_STATUS_FILTER,
