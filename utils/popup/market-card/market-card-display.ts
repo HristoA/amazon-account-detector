@@ -15,6 +15,27 @@ const STATUS_WARN_MARK = `<svg class="market-status-mark-icon" xmlns="http://www
 const STATUS_OUT_MARK = `<svg class="market-status-mark-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 8h8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>`;
 
 /**
+ * CSS token for the corner status mark on the country badge.
+ * Shared by render + sync so remount-skipping cannot drift from HTML.
+ */
+export function marketStatusMarkClass(
+  statusClass: string,
+  updating = false,
+  lastKnown = false,
+): string | null {
+  if (updating) return 'checking';
+  if (statusClass === 'ok' && lastKnown) return 'last-known';
+  if (
+    statusClass === 'ok' ||
+    statusClass === 'out' ||
+    statusClass === 'unknown'
+  ) {
+    return statusClass;
+  }
+  return null;
+}
+
+/**
  * Corner status mark on the country badge.
  * When `updating`, shows a spinner instead of the ok/out/unknown icon (data stays on the card).
  * When `lastKnown`, signed-in shows an orange warning (not a green check).
@@ -24,19 +45,20 @@ export function renderMarketStatusMark(
   updating = false,
   lastKnown = false,
 ): string {
-  if (updating) {
+  const markClass = marketStatusMarkClass(statusClass, updating, lastKnown);
+  if (markClass === 'checking') {
     return `<span class="market-status-mark checking" aria-hidden="true"><span class="market-status-spinner"></span></span>`;
   }
-  if (statusClass === 'ok' && lastKnown) {
+  if (markClass === 'last-known') {
     return `<span class="market-status-mark last-known" aria-hidden="true">${STATUS_WARN_MARK}</span>`;
   }
-  if (statusClass === 'ok') {
+  if (markClass === 'ok') {
     return `<span class="market-status-mark ok" aria-hidden="true">${STATUS_CHECK_MARK}</span>`;
   }
-  if (statusClass === 'out') {
+  if (markClass === 'out') {
     return `<span class="market-status-mark out" aria-hidden="true">${STATUS_OUT_MARK}</span>`;
   }
-  if (statusClass === 'unknown') {
+  if (markClass === 'unknown') {
     return `<span class="market-status-mark unknown" aria-hidden="true">${STATUS_WARN_MARK}</span>`;
   }
   return '';

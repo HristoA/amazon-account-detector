@@ -40,9 +40,9 @@ import {
   createRefreshSpinnerElement,
   syncRefreshButtonSpinner,
 } from '@/utils/popup/header/refresh-button-spinner';
-import { renderMarketStatusMark } from '@/utils/popup/market-card/market-card-display';
 import { buildMarketCardRow } from '@/utils/popup/market-card/market-card-row';
 import { renderMarketCardHtml } from '@/utils/popup/market-card/render-market-card';
+import { syncMarketStatusMark } from '@/utils/popup/market-card/sync-market-status-mark';
 import { shouldTriggerPopupOpenRefresh } from '@/utils/popup/open-refresh/popup-open-refresh';
 import { renderMarketplaceSelectOptionsHtml } from '@/utils/popup/select/marketplace-select-options';
 import { countStatuses } from '@/utils/popup/status-filter/status-counts';
@@ -550,16 +550,12 @@ function patchAllView(): void {
 
     const codeWrap = card.querySelector('.market-code-wrap');
     if (codeWrap) {
-      const mark = codeWrap.querySelector('.market-status-mark');
-      mark?.remove();
-      const markHtml = renderMarketStatusMark(
+      syncMarketStatusMark(
+        codeWrap,
         row.statusClass,
         row.updating,
         row.lastKnown,
       );
-      if (markHtml) {
-        codeWrap.insertAdjacentHTML('beforeend', markHtml);
-      }
     }
 
     const body = card.querySelector('.market-card-body');

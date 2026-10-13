@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   displayMarketEmail,
+  marketStatusMarkClass,
   renderMarketStatusMark,
 } from './market-card-display';
 
@@ -23,6 +24,24 @@ describe('displayMarketEmail', () => {
     expect(displayMarketEmail({ status: 'logged_out', checkedAt: 1 })).toBe('');
     expect(displayMarketEmail({ status: 'unknown', checkedAt: 1 })).toBe('');
     expect(displayMarketEmail(undefined)).toBe('');
+  });
+});
+
+describe('marketStatusMarkClass', () => {
+  it('returns checking while updating', () => {
+    expect(marketStatusMarkClass('ok', true, true)).toBe('checking');
+    expect(marketStatusMarkClass('out', true)).toBe('checking');
+  });
+
+  it('returns last-known for stale signed-in', () => {
+    expect(marketStatusMarkClass('ok', false, true)).toBe('last-known');
+  });
+
+  it('returns the status token otherwise', () => {
+    expect(marketStatusMarkClass('ok')).toBe('ok');
+    expect(marketStatusMarkClass('out')).toBe('out');
+    expect(marketStatusMarkClass('unknown')).toBe('unknown');
+    expect(marketStatusMarkClass('other')).toBeNull();
   });
 });
 
