@@ -5,7 +5,7 @@ import {
   formatHeaderFreshness,
   latestCheckedAt,
   latestEntryIsLastKnown,
-} from './header-freshness.ts';
+} from './header-freshness';
 
 describe('cacheAdvancedDuringRefresh', () => {
   it('is false when checkedAt did not advance (e.g. unknown write skipped)', () => {

@@ -7,7 +7,7 @@ import {
   MARKETPLACES,
   marketplaceFlag,
 } from '@/utils/marketplace/marketplaces';
-import { escapeAttr } from '@/utils/popup/escape-attr';
+import { escapeAttr } from '@/utils/popup/escape/dom-escape';
 
 export interface MarketplaceSelectOptionsParams {
   t: (key: MessageKey) => string;

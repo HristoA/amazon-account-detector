@@ -3,7 +3,7 @@
  * challenge.js can run (same idea as the extension’s inactive-tab path).
  */
 import { chromium, type Browser, type Page } from 'playwright';
-import { isAwsWafChallengeHtml } from '../utils/auth/parse-auth';
+import { isAwsWafChallengeHtml } from '../utils/auth/detect/parse-auth';
 import {
   extractAssocHandleFromHtml,
   type AssocHandleProbe,

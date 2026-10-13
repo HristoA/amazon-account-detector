@@ -1,4 +1,4 @@
-import type { AuthByMarketplace } from './auth-types';
+import type { AuthByMarketplace } from '@/utils/auth/types/auth-types';
 
 /**
  * How long a verified signed-in / signed-out result may be kept as last-known

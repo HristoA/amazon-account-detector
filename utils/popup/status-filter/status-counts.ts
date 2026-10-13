@@ -1,4 +1,4 @@
-import type { AuthCacheEntry } from '@/utils/auth/auth-types';
+import type { AuthCacheEntry } from '@/utils/auth/types/auth-types';
 import { resolveFilterStatus, type StatusFilter } from './status-filter';
 
 export type StatusCounts = Record<StatusFilter, number>;

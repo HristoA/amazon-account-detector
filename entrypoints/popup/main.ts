@@ -22,45 +22,44 @@ import {
   type ExtensionMessage,
   type PopupState,
 } from '@/utils/messaging/messages';
-import { escapeAttr } from '@/utils/popup/escape-attr';
-import { escapeHtml } from '@/utils/popup/escape-html';
+import { resolveCheckResponse } from '@/utils/popup/check-response/resolve-check-response';
+import { escapeAttr, escapeHtml } from '@/utils/popup/escape/dom-escape';
 import {
   cacheAdvancedDuringRefresh,
   formatHeaderFreshness,
   JUST_NOW_MS,
   latestCheckedAt,
   latestEntryIsLastKnown,
-} from '@/utils/popup/header-freshness';
+} from '@/utils/popup/header/header-freshness';
 import {
   BACK_CHEVRON_ICON,
   REFRESH_ICON,
   SETTINGS_ICON,
-} from '@/utils/popup/header-icons';
-import { renderMarketStatusMark } from '@/utils/popup/market-card-display';
-import { buildMarketCardRow } from '@/utils/popup/market-card-row';
-import { renderMarketplaceSelectOptionsHtml } from '@/utils/popup/marketplace-select-options';
-import { shouldTriggerPopupOpenRefresh } from '@/utils/popup/popup-open-refresh';
+} from '@/utils/popup/header/header-icons';
 import {
   createRefreshSpinnerElement,
   syncRefreshButtonSpinner,
-} from '@/utils/popup/refresh-button-spinner';
-import { renderMarketCardHtml } from '@/utils/popup/render-market-card';
-import { resolveCheckResponse } from '@/utils/popup/resolve-check-response';
-import { countStatuses } from '@/utils/popup/status-counts';
+} from '@/utils/popup/header/refresh-button-spinner';
+import { renderMarketStatusMark } from '@/utils/popup/market-card/market-card-display';
+import { buildMarketCardRow } from '@/utils/popup/market-card/market-card-row';
+import { renderMarketCardHtml } from '@/utils/popup/market-card/render-market-card';
+import { shouldTriggerPopupOpenRefresh } from '@/utils/popup/open-refresh/popup-open-refresh';
+import { renderMarketplaceSelectOptionsHtml } from '@/utils/popup/select/marketplace-select-options';
+import { countStatuses } from '@/utils/popup/status-filter/status-counts';
 import {
   isStatusFilter,
   matchesStatusFilter,
   STATUS_FILTERS,
   type StatusFilter,
-} from '@/utils/popup/status-filter';
+} from '@/utils/popup/status-filter/status-filter';
 import {
   getStoredStatusFilter,
   setStoredStatusFilter,
-} from '@/utils/popup/status-filter-preference';
+} from '@/utils/popup/status-filter/status-filter-preference';
 import {
   renderStatusFilterHtml,
   statusTablistAriaLabel,
-} from '@/utils/popup/status-filter-ui';
+} from '@/utils/popup/status-filter/status-filter-ui';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 

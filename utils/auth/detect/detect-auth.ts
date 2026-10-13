@@ -1,6 +1,9 @@
 import { browser } from 'wxt/browser';
-import type { AuthCacheEntry } from './auth-types';
-import { buildSignInUrl, type Marketplace } from '../marketplace/marketplaces';
+import type { AuthCacheEntry } from '@/utils/auth/types/auth-types';
+import {
+  buildSignInUrl,
+  type Marketplace,
+} from '@/utils/marketplace/marketplaces';
 import {
   claimFallbackTab,
   trackFallbackTab,
@@ -8,8 +11,8 @@ import {
   withFallbackTabMarker,
 } from './fallback-tabs';
 import { parseAuthHtml, SWITCHER_TOKEN_RE } from './parse-auth';
-import { settleAuthHtml } from './settle-auth-html.ts';
-import { Semaphore } from './semaphore.ts';
+import { settleAuthHtml } from './settle-auth-html';
+import { Semaphore } from './semaphore';
 
 const TAB_LOAD_TIMEOUT_MS = 20_000;
 /** At most one inactive-tab fallback at a time (fetch stays parallel). */

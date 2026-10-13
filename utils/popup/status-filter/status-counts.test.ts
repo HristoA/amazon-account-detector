@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { AuthCacheEntry } from '@/utils/auth/auth-types';
+import type { AuthCacheEntry } from '@/utils/auth/types/auth-types';
 import { countStatuses } from './status-counts';
 
 function entry(status: AuthCacheEntry['status']): AuthCacheEntry {

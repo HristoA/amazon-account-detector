@@ -1,4 +1,7 @@
-import type { AuthByMarketplace, AuthCacheEntry } from '../auth/auth-types';
+import type {
+  AuthByMarketplace,
+  AuthCacheEntry,
+} from '@/utils/auth/types/auth-types';
 import { isSupportedLocale } from '../i18n/locales';
 import {
   isMarketplaceSelection,

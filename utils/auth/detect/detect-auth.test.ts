@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getMarketplace } from '../marketplace/marketplaces';
+import { getMarketplace } from '@/utils/marketplace/marketplaces';
 
 const trackFallbackTab = vi.fn(async () => {});
 const untrackFallbackTab = vi.fn(async () => {});

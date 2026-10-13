@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Semaphore } from './semaphore.ts';
+import { Semaphore } from './semaphore';
 
 describe('Semaphore', () => {
   it('allows up to the limit to run concurrently', async () => {

@@ -33,7 +33,7 @@ import {
   getMarketplace,
   MARKETPLACES,
 } from '../utils/marketplace/marketplaces';
-import { Semaphore } from '../utils/auth/semaphore';
+import { Semaphore } from '../utils/auth/detect/semaphore';
 import {
   fetchSignInWithBrowser,
   withBrowser,

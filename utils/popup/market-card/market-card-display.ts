@@ -1,4 +1,4 @@
-import type { AuthCacheEntry } from '@/utils/auth/auth-types';
+import type { AuthCacheEntry } from '@/utils/auth/types/auth-types';
 
 /** Email line for a market card; empty when not signed in or email unknown. */
 export function displayMarketEmail(entry: AuthCacheEntry | undefined): string {

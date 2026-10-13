@@ -1,17 +1,20 @@
 import { storage } from 'wxt/utils/storage';
-import type { AuthByMarketplace, AuthCacheEntry } from './auth-types';
-import { seedMissingAuthEntries } from './seed-auth-cache';
-import { expireStaleAuthEntries } from './session-freshness';
-import {
-  isUnknownSkipOfDefinitive,
-  shouldWriteAuthEntry,
-} from './should-write-auth-entry';
+import type {
+  AuthByMarketplace,
+  AuthCacheEntry,
+} from '@/utils/auth/types/auth-types';
 import {
   DEFAULT_MARKETPLACE_ID,
   isMarketplaceSelection,
   MARKETPLACES,
   type MarketplaceSelection,
-} from '../marketplace/marketplaces';
+} from '@/utils/marketplace/marketplaces';
+import {
+  isUnknownSkipOfDefinitive,
+  seedMissingAuthEntries,
+  shouldWriteAuthEntry,
+} from './cache-entries';
+import { expireStaleAuthEntries } from './session-freshness';
 
 const selectedMarketplaceItem = storage.defineItem<MarketplaceSelection>(
   'local:selectedMarketplaceId',
@@ -114,6 +117,9 @@ export async function setAuthEntry(
     });
   });
   // Keep the chain alive after failures so later writes still serialize.
-  authWriteChain = run.catch(() => {});
+  authWriteChain = run.then(
+    () => undefined,
+    () => undefined,
+  );
   await run;
 }

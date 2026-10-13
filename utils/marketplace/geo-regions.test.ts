@@ -12,7 +12,7 @@ import {
   geoRegionForMarketplace,
   groupMarketplacesByGeoRegion,
   marketplaceGeoRegionId,
-} from './geo-regions.ts';
+} from './geo-regions';
 
 describe('marketplaceGeoRegionId', () => {
   it('maps country codes into geographic buckets', () => {

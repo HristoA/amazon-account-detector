@@ -1,7 +1,6 @@
 import type { MessageKey } from '@/utils/i18n/i18n';
-import { escapeAttr } from '@/utils/popup/escape-attr';
-import { escapeHtml } from '@/utils/popup/escape-html';
-import type { StatusFilter } from '@/utils/popup/status-filter';
+import { escapeAttr, escapeHtml } from '@/utils/popup/escape/dom-escape';
+import type { StatusFilter } from './status-filter';
 
 export function statusFilterClass(filter: StatusFilter): string {
   if (filter === 'logged_in') return 'ok';

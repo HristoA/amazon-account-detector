@@ -10,7 +10,7 @@ import {
   ALL_MARKETPLACES_ID,
   MARKETPLACES,
 } from '@/utils/marketplace/marketplaces';
-import { renderMarketplaceSelectOptionsHtml } from './marketplace-select-options.ts';
+import { renderMarketplaceSelectOptionsHtml } from './marketplace-select-options';
 
 afterEach(() => {
   resetFlagEmojiSupportCacheForTests();

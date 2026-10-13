@@ -6,14 +6,13 @@ import {
   buildMarketplaceActionUrl,
   type Marketplace,
 } from '@/utils/marketplace/marketplaces';
-import { escapeAttr } from '@/utils/popup/escape-attr';
-import { escapeHtml } from '@/utils/popup/escape-html';
-import { renderMarketStatusMark } from '@/utils/popup/market-card-display';
-import type { MarketCardRow } from '@/utils/popup/market-card-row';
+import { escapeAttr, escapeHtml } from '@/utils/popup/escape/dom-escape';
 import {
   matchesStatusFilter,
   type StatusFilter,
-} from '@/utils/popup/status-filter';
+} from '@/utils/popup/status-filter/status-filter';
+import { renderMarketStatusMark } from './market-card-display';
+import type { MarketCardRow } from './market-card-row';
 
 const MARKET_OPEN_ICON = `<svg class="market-open-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 11.5 11.5 4.5"/><path d="M6.5 4.5h5v5"/></svg>`;
 

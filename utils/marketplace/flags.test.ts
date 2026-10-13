@@ -5,7 +5,7 @@ import {
   resetFlagEmojiSupportCacheForTests,
   setFlagEmojiSupportForTests,
   supportsFlagEmoji,
-} from './flags.ts';
+} from './flags';
 
 const LRE = '\u202A';
 const PDF = '\u202C';

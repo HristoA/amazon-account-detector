@@ -8,13 +8,13 @@ import {
   setAuthEntry,
   setSelectedMarketplace,
 } from './auth-cache';
-import { AUTH_SESSION_MAX_AGE_MS } from './session-freshness';
+import type { AuthByMarketplace } from '@/utils/auth/types/auth-types';
 import {
   ALL_MARKETPLACES_ID,
   DEFAULT_MARKETPLACE_ID,
   MARKETPLACES,
-} from '../marketplace/marketplaces';
-import type { AuthByMarketplace } from './auth-types';
+} from '@/utils/marketplace/marketplaces';
+import { AUTH_SESSION_MAX_AGE_MS } from './session-freshness';
 
 describe('auth-cache', () => {
   beforeEach(() => {

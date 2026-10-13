@@ -1,8 +1,8 @@
-import type { AuthCacheEntry } from '@/utils/auth/auth-types';
+import type { AuthCacheEntry } from '@/utils/auth/types/auth-types';
 import { formatCheckedAt, type MessageKey } from '@/utils/i18n/i18n';
 import type { Marketplace } from '@/utils/marketplace/marketplaces';
-import { displayMarketEmail } from '@/utils/popup/market-card-display';
-import { resolveFilterStatus } from '@/utils/popup/status-filter';
+import { resolveFilterStatus } from '@/utils/popup/status-filter/status-filter';
+import { displayMarketEmail } from './market-card-display';
 
 export interface MarketCardRow {
   statusClass: string;

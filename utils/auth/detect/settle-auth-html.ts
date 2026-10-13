@@ -1,4 +1,4 @@
-import { isAwsWafChallengeHtml } from './parse-auth.ts';
+import { isAwsWafChallengeHtml } from './parse-auth';
 
 export interface SettleAuthHtmlOptions {
   readHtml: () => Promise<string>;

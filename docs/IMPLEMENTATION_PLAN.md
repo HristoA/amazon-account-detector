@@ -60,7 +60,7 @@ This prevents: user opens All → first 5 start → user switches to another mar
 ## Detection
 
 1. Build sign-in URL from [REQUIREMENTS](REQUIREMENTS.md) pattern + per-marketplace `openid.assoc_handle` (`{cc}flex`, UK → `gbflex`; Singapore → `spflex` — verify with `pnpm verify:assoc-handles`, which curls then falls back to Chromium for WAF/`missing`; match requires the handle ≥2× in HTML to avoid probe-URL echo; wrong handles may yield more unknowns)
-2. Fetch + [utils/auth/parse-auth.ts](../utils/auth/parse-auth.ts) → logged_in + email | logged_out | indeterminate
+2. Fetch + [utils/auth/detect/parse-auth.ts](../utils/auth/detect/parse-auth.ts) → logged_in + email | logged_out | indeterminate
 3. Indeterminate → inactive tab scrape → close tab (track ID in `fallbackTabIds`)
 4. Persist definitive `logged_in` / `logged_out` (and first-paint `logged_out` seeds with `checkedAt: 0` — UI shows Signed out + “Never checked”, not Unknown). Within **1h** of `checkedAt`, indeterminate `unknown` sets `lastKnown` instead of wiping email; after 1h demote to `unknown` (on failed check or `ensureAuthCacheSeeded` expiry). Header “Checked just now” only when `checkedAt` advanced vs the refresh-start snapshot. Fallback tabs use an `aad_fb` marker + blank→track→navigate; orphan sweeps query Amazon host URL patterns only, close tracked auth-path tabs if Amazon strips the marker, and briefly close recent tracked Amazon storefront redirects (SW death mid-check). If the user focuses a fallback tab, it is marked `userClaimed` and **never** auto-closed later (deviation from “close on later inactive sweep” — ownership transfers to the user until they close the tab). All-refresh uses best-effort pooling so one marketplace failure records `unknown` and does not abort the batch.
 

@@ -1,4 +1,3 @@
-import { AllRefreshBatch } from '@/utils/auth/all-refresh';
 import {
   ensureAuthCacheSeeded,
   getSelectedMarketplace,
@@ -6,14 +5,15 @@ import {
   setAuthEntry,
   setSelectedMarketplace,
   setStoredLocale,
-} from '@/utils/auth/auth-cache';
-import type { AuthCacheEntry } from '@/utils/auth/auth-types';
+} from '@/utils/auth/cache/auth-cache';
+import type { AuthCacheEntry } from '@/utils/auth/types/auth-types';
+import { detectAuth } from '@/utils/auth/detect/detect-auth';
+import { closeTrackedFallbackTabs } from '@/utils/auth/detect/fallback-tabs';
+import { AllRefreshBatch } from '@/utils/auth/refresh/all-refresh';
 import {
   CheckCoordinator,
   mapPoolBestEffort,
-} from '@/utils/auth/check-coordinator';
-import { detectAuth } from '@/utils/auth/detect-auth';
-import { closeTrackedFallbackTabs } from '@/utils/auth/fallback-tabs';
+} from '@/utils/auth/refresh/check-coordinator';
 import { resolveLocale } from '@/utils/i18n/locales';
 import {
   ALL_MARKETPLACES_ID,

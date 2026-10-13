@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { settleAuthHtml } from './settle-auth-html.ts';
+import { settleAuthHtml } from './settle-auth-html';
 
 const wafHtml = `
   <div id="challenge-container"></div>

@@ -1,4 +1,4 @@
-import { isAwsWafChallengeHtml } from '../../utils/auth/parse-auth';
+import { isAwsWafChallengeHtml } from '../../utils/auth/detect/parse-auth';
 
 export type AssocHandleDiffStatus =
   'match' | 'mismatch' | 'missing' | 'blocked' | 'rejected';

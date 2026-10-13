@@ -1,6 +1,6 @@
 import { browser } from 'wxt/browser';
 import { storage } from 'wxt/utils/storage';
-import { MARKETPLACES } from '../marketplace/marketplaces';
+import { MARKETPLACES } from '@/utils/marketplace/marketplaces';
 
 export interface FallbackTabRecord {
   tabId: number;
