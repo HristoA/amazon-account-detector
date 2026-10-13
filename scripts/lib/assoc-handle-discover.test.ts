@@ -25,6 +25,21 @@ describe('extractAssocHandleFromHtml', () => {
     expect(extractAssocHandleFromHtml(html)).toBe('gbflex');
   });
 
+  it('decodes HTML-entity-encoded = separators (&#061;)', () => {
+    // Amazon captcha / soft-block pages escape = in hidden return URLs.
+    const html = `
+      <input name="amzn-r" value="&#047;ap&#047;signin?openid.assoc_handle&#061;deflex&amp;openid.mode&#061;checkid_setup" />
+    `;
+    expect(extractAssocHandleFromHtml(html)).toBe('deflex');
+  });
+
+  it('decodes HTML-entity-encoded percent (%3D via &#037;)', () => {
+    const html = `
+      <input value="openid.assoc_handle&#037;3Dgbflex&#037;26openid.ns&#037;3Dhttp" />
+    `;
+    expect(extractAssocHandleFromHtml(html)).toBe('gbflex');
+  });
+
   it('extracts handles from claim form actions with &amp; separators', () => {
     const html = `
       <form action="/ax/claim?openid.assoc_handle=usflex&amp;openid.mode=checkid_setup">
@@ -57,16 +72,18 @@ describe('extractAssocHandleFromHtml', () => {
   });
 });
 
-/** Two embeds — required so a single probe-URL echo is not a false match. */
+/** Sign-in markup with the handle (may appear only once — Amazon’s current pages). */
 function htmlWithHandle(handle: string): string {
   return `
-    <a href="?openid.assoc_handle=${handle}">a</a>
-    <form action="?openid.assoc_handle=${handle}&amp;x=1"></form>
+    <form id="ap_login_form">
+      <input id="ap_email" name="email" />
+      <a href="?openid.assoc_handle=${handle}">a</a>
+    </form>
   `;
 }
 
 describe('classifyAssocHandleProbe', () => {
-  it('matches when HTML embeds the expected handle at least twice', () => {
+  it('matches when the expected handle appears on a real sign-in page', () => {
     expect(
       classifyAssocHandleProbe('deflex', {
         httpStatus: 200,
@@ -75,7 +92,21 @@ describe('classifyAssocHandleProbe', () => {
     ).toEqual({ discovered: 'deflex', status: 'match' });
   });
 
-  it('does not treat a single echo of the probed handle as a match', () => {
+  it('matches a single probe-URL echo when auth UI is present', () => {
+    expect(
+      classifyAssocHandleProbe('usflex', {
+        httpStatus: 200,
+        html: `
+          <form id="ap_login_form">
+            <input id="ap_email" name="email" />
+            <input type="hidden" value="openid.assoc_handle&#061;usflex" />
+          </form>
+        `,
+      }),
+    ).toEqual({ discovered: 'usflex', status: 'match' });
+  });
+
+  it('does not treat a bare probe-URL echo without auth UI as a match', () => {
     expect(
       classifyAssocHandleProbe('usflex', {
         httpStatus: 200,
@@ -102,7 +133,7 @@ describe('classifyAssocHandleProbe', () => {
     ).toEqual({ discovered: null, status: 'rejected' });
   });
 
-  it('marks WAF HTML / 202 / 5xx as blocked', () => {
+  it('marks WAF HTML / 202 / 5xx / captcha soft-blocks as blocked', () => {
     expect(
       classifyAssocHandleProbe('usflex', {
         httpStatus: 202,
@@ -113,6 +144,16 @@ describe('classifyAssocHandleProbe', () => {
       classifyAssocHandleProbe('brflex', {
         httpStatus: 503,
         html: 'Service Unavailable',
+      }),
+    ).toEqual({ discovered: null, status: 'blocked' });
+    expect(
+      classifyAssocHandleProbe('usflex', {
+        httpStatus: 200,
+        html: `
+          <form action="/errors_page/validateCaptcha">
+            <input name="amzn-r" value="openid.assoc_handle&#061;usflex" />
+          </form>
+        `,
       }),
     ).toEqual({ discovered: null, status: 'blocked' });
   });

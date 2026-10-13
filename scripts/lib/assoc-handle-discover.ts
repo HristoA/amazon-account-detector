@@ -16,14 +16,53 @@ export interface AssocHandleProbe {
   html: string | null;
 }
 
+/**
+ * Match `openid.assoc_handle` after HTML/URL decoding of the separator.
+ * Amazon often HTML-escapes `=` as `&#061;` (and `%` as `&#037;`) in attributes.
+ */
 const ASSOC_HANDLE_RE = /openid\.assoc_handle(?:=|%3D)([a-zA-Z0-9_]+)/gi;
 
 /**
- * Minimum times the expected handle must appear in HTML to count as `match`.
- * A single hit is often just the probe URL echoed into the page (circular).
- * Real sign-in / switcher markup repeats the handle in multiple links/forms.
+ * Normalize separators Amazon embeds in HTML so the assoc_handle regex can match.
+ * Decodes numeric/named entities for `=` and `%` (used before `%3D`).
  */
-const MIN_MATCH_HANDLE_OCCURRENCES = 2;
+export function normalizeAssocHandleHtml(html: string): string {
+  return html
+    .replace(/&#0*61;/gi, '=')
+    .replace(/&#x0*3d;/gi, '=')
+    .replace(/&equals;/gi, '=')
+    .replace(/&#0*37;/gi, '%')
+    .replace(/&#x0*25;/gi, '%');
+}
+
+/** Captcha / soft-block interstitials that may echo the probe URL once. */
+export function isAssocHandleSoftBlockHtml(html: string): boolean {
+  return (
+    /validateCaptcha/i.test(html) ||
+    /Sorry!\s*Something went wrong/i.test(html) ||
+    /Click the button below to continue shopping/i.test(html)
+  );
+}
+
+/**
+ * Real sign-in / claim UI (not a bare probe-URL echo on an interstitial).
+ * Wrong handles typically 404; accepted handles land on pages with these signals.
+ */
+export function looksLikeAmazonAuthPage(
+  html: string,
+  expectedHandle: string,
+): boolean {
+  const normalized = normalizeAssocHandleHtml(html);
+  return (
+    /id=["']ap_email["']/i.test(html) ||
+    /name=["']email["']/i.test(html) ||
+    /id=["']ap_password["']/i.test(html) ||
+    /name=["']password["']/i.test(html) ||
+    /id=["']ap_login_form["']/i.test(html) ||
+    new RegExp(`pageId=${expectedHandle}\\b`, 'i').test(normalized) ||
+    /ap_switch_account|ap-account-switcher|cvf-account-switcher/i.test(html)
+  );
+}
 
 /**
  * Pull the most likely `openid.assoc_handle` from Amazon HTML
@@ -47,13 +86,10 @@ export function extractAssocHandleFromHtml(html: string): string | undefined {
   return best;
 }
 
-function countAssocHandleOccurrences(html: string, handle: string): number {
-  return countAssocHandles(html).get(handle) ?? 0;
-}
-
 function countAssocHandles(html: string): Map<string, number> {
+  const normalized = normalizeAssocHandleHtml(html);
   const counts = new Map<string, number>();
-  for (const match of html.matchAll(ASSOC_HANDLE_RE)) {
+  for (const match of normalized.matchAll(ASSOC_HANDLE_RE)) {
     const handle = match[1];
     if (!handle) continue;
     counts.set(handle, (counts.get(handle) ?? 0) + 1);
@@ -64,10 +100,11 @@ function countAssocHandles(html: string): Map<string, number> {
 /**
  * Classify a sign-in URL probe built with the marketplace’s declared handle.
  *
- * Caveat: the probe URL includes `expected`, and Amazon may echo that query
- * into HTML. A single occurrence of `expected` is treated as `missing` (not
- * `match`). `rejected` (404) and `mismatch` (a different handle dominates)
- * are the strong failure signals.
+ * Amazon currently accepts a valid handle with HTTP 200 (sign-in form) and
+ * rejects an invalid one with HTTP 404. The probe URL may appear only once in
+ * the body (often HTML-entity-encoded); that single echo is enough when the
+ * page looks like real auth UI. Soft-block / captcha pages that echo the URL
+ * are `blocked`, not `match`.
  */
 export function classifyAssocHandleProbe(
   expected: string,
@@ -80,7 +117,8 @@ export function classifyAssocHandleProbe(
   if (
     probe.httpStatus === 202 ||
     probe.httpStatus >= 500 ||
-    isAwsWafChallengeHtml(probe.html)
+    isAwsWafChallengeHtml(probe.html) ||
+    isAssocHandleSoftBlockHtml(probe.html)
   ) {
     return { discovered: null, status: 'blocked' };
   }
@@ -94,9 +132,8 @@ export function classifyAssocHandleProbe(
     return { discovered: null, status: 'missing' };
   }
   if (discovered === expected) {
-    const occurrences = countAssocHandleOccurrences(probe.html, expected);
-    if (occurrences < MIN_MATCH_HANDLE_OCCURRENCES) {
-      // Likely only the probe URL echoed back — not enough to confirm.
+    if (!looksLikeAmazonAuthPage(probe.html, expected)) {
+      // Echo on a non-auth page — not enough to confirm acceptance.
       return { discovered: null, status: 'missing' };
     }
     return { discovered, status: 'match' };

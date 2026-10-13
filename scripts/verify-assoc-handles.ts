@@ -7,11 +7,11 @@
  * 2. Playwright Chromium fallback for `blocked` (WAF/5xx) and `missing`
  *    (timeouts, empty extract, request errors) — runs challenge.js
  *
- * Caveat: the probe URL includes the declared handle. Amazon may echo that
- * query into HTML. Classification requires the expected handle ≥2 times in
- * the body (see MIN_MATCH_HANDLE_OCCURRENCES). Strong signals: `rejected`
- * (404) and `mismatch` (a different handle dominates). Exit 0 is not absolute
- * cryptographic proof of the handle — only a practical consistency check.
+ * Caveat: the probe URL includes the declared handle and may appear only once
+ * in the body (often as HTML entities like &#061;). A match requires that echo
+ * plus real auth UI (email/password form or pageId). Invalid handles typically
+ * 404 (`rejected`). Soft-block/captcha pages are `blocked`. Exit 0 is a
+ * practical consistency check, not cryptographic proof.
  *
  * Usage: pnpm verify:assoc-handles
  * Requires: curl, and Playwright Chromium (`pnpm exec playwright install chromium`)
