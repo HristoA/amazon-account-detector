@@ -48,12 +48,6 @@ const ALLOWED_AMAZON_HOSTS = new Set(
  */
 export const TRACKED_AMAZON_HOST_CLOSE_MAX_AGE_MS = 60_000;
 
-/** Narrow `tabs.query` to retail Amazon hosts (plus www). */
-export const AMAZON_TAB_URL_PATTERNS: string[] = MARKETPLACES.flatMap((m) => [
-  `*://${m.domain}/*`,
-  `*://www.${m.domain}/*`,
-]);
-
 let tabWriteChain: Promise<void> = Promise.resolve();
 
 function enqueue(update: () => Promise<void>): Promise<void> {
@@ -243,10 +237,29 @@ export function isRecentTrackedAmazonHost(
 }
 
 /**
+ * Tracked auth-path tabs (marker present or stripped by Amazon) are closable
+ * only while still young — tab IDs recycle.
+ */
+export function isRecentTrackedAuthPath(
+  url: string | undefined,
+  options: { wasTracked: boolean; trackedAt: number; now?: number },
+): boolean {
+  if (!options.wasTracked || !isAmazonAuthPathUrl(url)) {
+    return false;
+  }
+  if (options.trackedAt <= 0) {
+    return false;
+  }
+  const now = options.now ?? Date.now();
+  return now - options.trackedAt < TRACKED_AMAZON_HOST_CLOSE_MAX_AGE_MS;
+}
+
+/**
  * Whether a tab URL is safe to close.
- * Tracked ids may lose `aad_fb` on Amazon redirects — still close auth paths.
- * Recent tracked Amazon hosts (post-redirect storefront) are closable briefly.
- * Untracked (marker-only discover) requires the marker.
+ * Only tracked ids are closable — never close by marker alone (user may keep a
+ * copied `aad_fb` sign-in URL).
+ * Tracked auth paths (marker optional) and post-redirect Amazon hosts are
+ * closable only within {@link TRACKED_AMAZON_HOST_CLOSE_MAX_AGE_MS}.
  * Tracked blanks are only closable within {@link BLANK_CLOSE_MAX_AGE_MS}.
  */
 export function isOursToClose(
@@ -270,10 +283,13 @@ export function isOursToClose(
   ) {
     return true;
   }
-  if (isFallbackTabUrl(url)) {
-    return true;
-  }
-  if (options.wasTracked && isAmazonAuthPathUrl(url)) {
+  if (
+    isRecentTrackedAuthPath(url, {
+      wasTracked: options.wasTracked,
+      trackedAt: options.trackedAt ?? 0,
+      now: options.now,
+    })
+  ) {
     return true;
   }
   return isRecentTrackedAmazonHost(url, {
@@ -284,7 +300,7 @@ export function isOursToClose(
 }
 
 /**
- * Close tracked (and marker-bearing) fallback tabs that still look like ours.
+ * Close tracked fallback tabs that still look like ours.
  * Clears an id only after it is gone, skipped (wrong URL), or successfully closed —
  * never wipe the whole list before attempting removes.
  */
@@ -293,32 +309,15 @@ export async function closeTrackedFallbackTabs(
 ): Promise<void> {
   await enqueue(async () => {
     const trackedRecords = await readTrackedRecords();
-    const recordById = new Map(trackedRecords.map((r) => [r.tabId, r]));
-    const ids = new Set(trackedRecords.map((r) => r.tabId));
-
-    // Catch orphans left if the SW died after create but before track.
-    try {
-      const tabs = await browser.tabs.query({ url: AMAZON_TAB_URL_PATTERNS });
-      for (const tab of tabs) {
-        if (tab.id != null && hasFallbackTabMarker(tab.url)) {
-          ids.add(tab.id);
-        }
-      }
-    } catch {
-      // tabs.query unavailable — fall back to tracked ids only.
-    }
-
     const stillTracked: FallbackTabRecord[] = [];
 
-    for (const tabId of ids) {
-      const record = recordById.get(tabId);
-      const wasTracked = record != null;
-      const trackedAt = record?.trackedAt ?? 0;
-      const alreadyClaimed = record?.userClaimed === true;
+    for (const record of trackedRecords) {
+      const { tabId, trackedAt } = record;
+      const alreadyClaimed = record.userClaimed === true;
       try {
         const tab = await browser.tabs.get(tabId);
         // User focused the fallback — keep a claimed record so later sweeps
-        // (and marker rediscovery) never close it.
+        // never close it.
         if (tab.active || alreadyClaimed) {
           stillTracked.push({
             tabId,
@@ -328,13 +327,13 @@ export async function closeTrackedFallbackTabs(
           continue;
         }
         const ours = isOursToClose(tab.url, {
-          wasTracked,
+          wasTracked: true,
           trackedAt,
           now,
           userClaimed: alreadyClaimed,
         });
         if (!ours) {
-          // Recycled id, stale blank, or navigated away — drop tracking.
+          // Recycled id, stale blank/auth path, or navigated away — drop tracking.
           continue;
         }
         try {

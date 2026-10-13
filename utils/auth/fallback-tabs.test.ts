@@ -310,7 +310,7 @@ describe('fallback-tabs', () => {
     ]);
   });
 
-  it('closes untracked tabs that still carry the marker', async () => {
+  it('does not close untracked tabs that still carry the marker', async () => {
     query.mockResolvedValue([
       {
         id: 55,
@@ -329,7 +329,46 @@ describe('fallback-tabs', () => {
 
     await closeTrackedFallbackTabs();
 
-    expect(remove).toHaveBeenCalledWith(55);
+    expect(remove).not.toHaveBeenCalled();
+    expect(await fallbackTabIdsItem.getValue()).toEqual([]);
+  });
+
+  it('does not close stale tracked auth-path tabs (id may be recycled)', async () => {
+    get.mockImplementation(async (tabId: number) => ({
+      id: tabId,
+      active: false,
+      url: 'https://www.amazon.com/ap/signin?openid.assoc_handle=usflex',
+    }));
+
+    const {
+      trackFallbackTab,
+      closeTrackedFallbackTabs,
+      fallbackTabIdsItem,
+      TRACKED_AMAZON_HOST_CLOSE_MAX_AGE_MS,
+    } = await import('./fallback-tabs');
+
+    const now = 100_000;
+    await trackFallbackTab(9, now - TRACKED_AMAZON_HOST_CLOSE_MAX_AGE_MS - 1);
+    await closeTrackedFallbackTabs(now);
+
+    expect(remove).not.toHaveBeenCalled();
+    expect(await fallbackTabIdsItem.getValue()).toEqual([]);
+  });
+
+  it('does not close legacy bare-id auth-path tabs without trackedAt', async () => {
+    get.mockImplementation(async (tabId: number) => ({
+      id: tabId,
+      active: false,
+      url: 'https://www.amazon.com/ap/signin?openid.assoc_handle=usflex&aad_fb=1',
+    }));
+
+    const { fallbackTabIdsItem, closeTrackedFallbackTabs } =
+      await import('./fallback-tabs');
+
+    await fallbackTabIdsItem.setValue([12]);
+    await closeTrackedFallbackTabs(Date.now());
+
+    expect(remove).not.toHaveBeenCalled();
     expect(await fallbackTabIdsItem.getValue()).toEqual([]);
   });
 
@@ -403,13 +442,58 @@ describe('fallback tab marker helpers', () => {
     ).toBe(false);
   });
 
-  it('queries only Amazon URL patterns when sweeping markers', async () => {
-    const { closeTrackedFallbackTabs, AMAZON_TAB_URL_PATTERNS } =
+  it('only closes recent tracked auth-path tabs (marked or stripped)', async () => {
+    const { isOursToClose, TRACKED_AMAZON_HOST_CLOSE_MAX_AGE_MS } =
       await import('./fallback-tabs');
+    const now = 20_000;
+    const marked =
+      'https://www.amazon.com/ap/signin?openid.assoc_handle=usflex&aad_fb=1';
+    const stripped =
+      'https://www.amazon.com/ap/signin?openid.assoc_handle=usflex';
+
+    expect(
+      isOursToClose(marked, {
+        wasTracked: true,
+        trackedAt: now - 1_000,
+        now,
+      }),
+    ).toBe(true);
+    expect(
+      isOursToClose(stripped, {
+        wasTracked: true,
+        trackedAt: now - 1_000,
+        now,
+      }),
+    ).toBe(true);
+    expect(
+      isOursToClose(marked, {
+        wasTracked: false,
+        trackedAt: now - 1_000,
+        now,
+      }),
+    ).toBe(false);
+    expect(
+      isOursToClose(stripped, {
+        wasTracked: true,
+        trackedAt: now - TRACKED_AMAZON_HOST_CLOSE_MAX_AGE_MS - 1,
+        now,
+      }),
+    ).toBe(false);
+    expect(
+      isOursToClose(marked, {
+        wasTracked: true,
+        trackedAt: 0,
+        now,
+      }),
+    ).toBe(false);
+  });
+
+  it('does not query Amazon tabs for marker rediscovery', async () => {
+    const { closeTrackedFallbackTabs } = await import('./fallback-tabs');
 
     await closeTrackedFallbackTabs();
 
-    expect(query).toHaveBeenCalledWith({ url: AMAZON_TAB_URL_PATTERNS });
+    expect(query).not.toHaveBeenCalled();
   });
 
   it('adds and detects the extension marker', async () => {
